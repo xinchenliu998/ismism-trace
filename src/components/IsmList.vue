@@ -161,14 +161,14 @@ function expandToSelected() {
     <div class="toolbar">
       <button
         type="button"
-        class="icon-btn"
+        class="icon-btn icon-btn-expand-collapse"
         :title="isAllExpanded ? '全部折叠' : '全部展开'"
         @click="toggleExpandCollapseAll"
       >
-        <svg v-if="isAllExpanded" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+        <svg v-if="isAllExpanded" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-collapse">
           <path d="M17 14l-5-5-5 5M17 8l-5-5-5 5" />
         </svg>
-        <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="icon">
+        <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-expand">
           <path d="M7 10l5 5 5-5M7 16l5 5 5-5" />
         </svg>
       </button>
@@ -289,6 +289,18 @@ function expandToSelected() {
   width: 1.2rem;
   height: 1.2rem;
   display: block;
+}
+/* 全部展开/折叠两态图标垂直居中一致，避免切换时上下跳动 */
+.icon-btn-expand-collapse {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.icon-btn-expand-collapse .icon-collapse {
+  transform: translateY(0.15em);
+}
+.icon-btn-expand-collapse .icon-expand {
+  transform: translateY(-0.15em);
 }
 .icon-btn:hover:not(:disabled) {
   background: var(--icon-btn-hover-bg, rgba(0, 0, 0, 0.06));

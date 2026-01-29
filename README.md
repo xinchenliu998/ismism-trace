@@ -1,6 +1,6 @@
 # ismism-trace
 
-基于 Tauri + Vue 的跨平台「主义主义」学习进度管理应用。使用项目根目录的 `ism.json` 作为主义数据源，可记录每条主义的学习程度（未学习 / 了解 / 学习中 / 掌握 / 精通）。
+基于 Tauri + Vue 的跨平台「主义主义」学习进度管理应用。主义数据来自构建时嵌入及应用数据目录的 `ism.json`，应用内可通过顶栏图标更新数据；可记录每条主义的学习程度（未学习 / 了解 / 学习中 / 掌握 / 精通）。Android 支持返回键与全面屏返回手势。
 
 ## 环境与运行
 
@@ -28,9 +28,10 @@ pnpm release major    # major 版本（0.1.0 -> 1.0.0）
 
 ## 文档
 
-- [功能说明](docs/features.md)：列表层级、学习进度、筛选、链接、多端布局等
-- [配置说明](docs/config.md)：学习程度配置、数据与存储说明
-- [各平台打包说明](docs/build.md)：Windows / Android / macOS / Linux 构建命令与产物路径
+- [功能说明](docs/features.md)：列表层级、学习进度、筛选、链接、更新数据、多端布局与返回键
+- [配置说明](docs/config.md)：学习程度、数据与存储、ism.json 更新方式
+- [各平台打包说明](docs/build.md)：Windows / Android / macOS / Linux 构建与发布、CHANGELOG 与 CI
+- 项目根目录 `CHANGELOG.md`：按版本维护更新说明，CI 创建 Release 时自动将当前版本段落写入 Release 正文；编写格式与示例见 [打包说明 - Release 正文与 Changelog](docs/build.md#release-正文与-changelog)
 
 ## 推荐 IDE
 

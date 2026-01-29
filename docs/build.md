@@ -31,6 +31,8 @@
 
 **安装时报 “packageinfo is null” 的原因：** 未签名的 APK 在部分设备上无法正确安装。必须对 release 包进行签名后再安装。
 
+**返回键与全面屏返回手势：** 已通过 `tauri-plugin-app-events` 与自定义 `MainActivity.kt` 支持。在详情页按物理返回键或全面屏返回手势会返回列表；在列表页按返回键交给系统处理。自定义逻辑位于 `src-tauri/gen/android/app/src/main/java/.../MainActivity.kt`；若重新执行 `tauri android init` 导致该文件被覆盖，需按 [tauri-plugin-app-events](https://github.com/wtto00/tauri-plugin-app-events) 的 README 重新添加 `onWebViewCreate` 与 `onKeyDown` 中的返回键转发逻辑。
+
 **配置签名（必做后再用 Universal 安装）：**
 
 1. 生成密钥库（仅需做一次）：
@@ -128,6 +130,43 @@ pnpm release major    # major 版本（0.1.0 -> 1.0.0）
 - 如果 tag 已存在于远程，会提示错误并退出
 
 推送 tag 后，GitHub Actions 会自动构建 Windows exe 和 Android APK，并创建 Release。在 **Actions** 页查看构建进度，完成后在 **Releases** 页即可下载。
+
+**Release 正文与 Changelog：**  
+CI 创建 Release 时，会从项目根目录的 `CHANGELOG.md` 中提取**当前版本**对应的段落（以 `## [x.y.z]` 开头的区块，到下一个 `##` 或文件末尾为止）写入 Release 正文，再追加 Android 包说明。版本号需与 tag 一致（如 tag `v0.1.1` 对应 `## [0.1.1]`）。
+
+**Changelog 编写示例：**
+
+在项目根目录维护 `CHANGELOG.md`，按 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/) 格式书写。CI 只提取**当前发布版本**的那一段，不会包含 `[Unreleased]` 或其他版本。
+
+```markdown
+# Changelog
+
+格式基于 Keep a Changelog。版本号与 tag 一致（如 v0.1.0）。
+
+## [Unreleased]
+
+（此处写尚未发布的改动，发布时再挪到对应版本下）
+
+## [0.1.1] - 2025-01-28
+
+### Added
+
+- 应用内更新主义数据：选择 ism.json → 校验 → 确认后替换
+- Android 返回键与全面屏返回手势：详情页返回列表，主界面退出到后台
+
+### Fixed
+
+- 返回键在主界面无法退出到后台的问题
+
+## [0.1.0]
+
+### Added
+
+- 主义主义学习进度：树形列表、详情、学习程度、搜索、展开/折叠
+- 跨平台 Windows、Android；链接用系统浏览器打开
+```
+
+常用分类：`### Added`、`### Changed`、`### Deprecated`、`### Removed`、`### Fixed`、`### Security`。日期 ` - YYYY-MM-DD` 可选。发布前确保即将打的 tag 对应版本在 `CHANGELOG.md` 里已有 `## [x.y.z]` 段落，否则 Release 正文中该版本会为空。
 
 ### 手动发布（不推荐）
 

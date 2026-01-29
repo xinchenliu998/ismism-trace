@@ -1,10 +1,33 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
+import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import IsmList from "./components/IsmList.vue";
 import IsmDetail from "./components/IsmDetail.vue";
-import { getIsmList, getProgress } from "./api";
+import {
+  getIsmList,
+  getProgress,
+  readIsmFile,
+  validateIsmContent,
+  applyIsmContent,
+} from "./api";
 import type { IsmItem } from "./types";
 import type { ProgressMap } from "./types";
+
+// Android 返回键 / 全面屏返回手势：仅在移动端存在
+const setupBackKey = async () => {
+  try {
+    const { onBackKeyDown } = await import("tauri-plugin-app-events-api");
+    onBackKeyDown(() => {
+      if (selectedId.value != null) {
+        selectedId.value = null;
+        return false; // 已处理，阻止系统默认返回
+      }
+      return true; // 未处理，交给系统
+    });
+  } catch {
+    // 桌面端无此 API，忽略
+  }
+};
 
 const items = ref<IsmItem[]>([]);
 const progress = ref<ProgressMap>({});
@@ -12,6 +35,7 @@ const selectedId = ref<string | null>(null);
 const searchKeyword = ref("");
 
 onMounted(async () => {
+  setupBackKey();
   try {
     const [list, prog] = await Promise.all([getIsmList(), getProgress()]);
     items.value = list;
@@ -36,6 +60,38 @@ function onProgressSaved() {
     progress.value = prog;
   });
 }
+
+const ismUpdateLoading = ref(false);
+const ismUpdateError = ref<string | null>(null);
+
+async function runIsmUpdate() {
+  ismUpdateError.value = null;
+  const raw = await openFileDialog({
+    title: "选择 ism.json",
+    filters: [{ name: "JSON", extensions: ["json"] }],
+  });
+  const path = raw == null ? null : Array.isArray(raw) ? raw[0] : raw;
+  if (!path) return;
+  ismUpdateLoading.value = true;
+  try {
+    const content = await readIsmFile(path);
+    const preview = await validateIsmContent(content);
+    const ok = window.confirm(
+      `校验通过，发现 ${preview.entry_count} 条主义。确认替换当前数据？`
+    );
+    if (!ok) return;
+    await applyIsmContent(content);
+    selectedId.value = null;
+    const [list, prog] = await Promise.all([getIsmList(), getProgress()]);
+    items.value = list;
+    progress.value = prog;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    ismUpdateError.value = msg.includes("JSON") ? "解析错误，已保持原数据。" : msg;
+  } finally {
+    ismUpdateLoading.value = false;
+  }
+}
 </script>
 
 <template>
@@ -56,6 +112,20 @@ function onProgressSaved() {
         class="search"
         placeholder="搜索名称或编号…"
       />
+      <button
+        type="button"
+        class="update-btn"
+        aria-label="更新主义数据"
+        :disabled="ismUpdateLoading"
+        :title="ismUpdateLoading ? '校验中…' : '更新数据'"
+        @click="runIsmUpdate"
+      >
+        <svg v-if="!ismUpdateLoading" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+        <svg v-else class="update-btn-spin" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+      </button>
+      <p v-if="ismUpdateError" class="update-err" role="alert">
+        {{ ismUpdateError }}
+      </p>
     </header>
     <div class="main">
       <aside class="sidebar">
@@ -162,6 +232,47 @@ function onProgressSaved() {
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
   background: #fff;
+}
+.update-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  color: #475569;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.update-btn svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: block;
+}
+.update-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+.update-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+.update-btn-spin {
+  animation: update-spin 0.8s linear infinite;
+}
+@keyframes update-spin {
+  to { transform: rotate(360deg); }
+}
+.update-err {
+  margin: 0;
+  font-size: 0.8rem;
+  color: #dc2626;
+  flex-basis: 100%;
+  order: 1;
 }
 .main {
   flex: 1;

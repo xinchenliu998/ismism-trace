@@ -1,10 +1,7 @@
-//! 解析 ism.json，提供主义条目列表与详情。
+//! 解析 ism.json，提供主义条目列表与详情；支持运行时校验与替换。
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-
-// build 时 ism.json 已复制到 src-tauri/ism.json
-const ISM_JSON: &str = include_str!("../ism.json");
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IsmEntry {
@@ -22,10 +19,16 @@ pub struct IsmItem {
     pub en_name: String,
 }
 
-/// 解析 ism.json，返回所有主义条目（排除 introduction 等非条目键）。
-pub fn parse_ism_map() -> HashMap<String, IsmEntry> {
+/// 校验/更新时的预览信息
+#[derive(Debug, Clone, Serialize)]
+pub struct IsmUpdatePreview {
+    pub entry_count: usize,
+}
+
+/// 从 JSON 字符串解析出条目映射；解析失败返回 Err，不修改任何状态。
+pub fn parse_ism_map_from_str(s: &str) -> Result<HashMap<String, IsmEntry>, String> {
     let root: HashMap<String, serde_json::Value> =
-        serde_json::from_str(ISM_JSON).expect("ism.json 解析失败");
+        serde_json::from_str(s).map_err(|e| format!("JSON 解析失败: {}", e))?;
     let mut map = HashMap::new();
     for (id, value) in root {
         if id == "introduction" {
@@ -39,31 +42,28 @@ pub fn parse_ism_map() -> HashMap<String, IsmEntry> {
             }
         }
     }
-    map
+    Ok(map)
 }
 
-/// 获取主义列表，按 id 字典序排序（保证层级顺序 1, 1-1, 1-1-1 等）。
-pub fn get_ism_list() -> Vec<IsmItem> {
-    let map = parse_ism_map();
+/// 从已解析的 map 生成列表（按 id 自然序）
+pub fn get_ism_list_from_map(map: &HashMap<String, IsmEntry>) -> Vec<IsmItem> {
     let mut items: Vec<IsmItem> = map
-        .into_iter()
+        .iter()
         .map(|(id, entry)| IsmItem {
             id: id.clone(),
-            ch_name: entry.ch_name,
-            en_name: entry.en_name,
+            ch_name: entry.ch_name.clone(),
+            en_name: entry.en_name.clone(),
         })
         .collect();
     items.sort_by(|a, b| natural_cmp(&a.id, &b.id));
     items
 }
 
-/// 获取单个主义详情。
-pub fn get_ism_detail(id: &str) -> Option<IsmEntry> {
-    let map = parse_ism_map();
+/// 从已解析的 map 取单条详情
+pub fn get_ism_detail_from_map(map: &HashMap<String, IsmEntry>, id: &str) -> Option<IsmEntry> {
     map.get(id).cloned()
 }
 
-/// 简单自然序比较：先按段比较数字，再按字符串。
 fn natural_cmp(a: &str, b: &str) -> std::cmp::Ordering {
     let segs_a: Vec<&str> = a.split('-').collect();
     let segs_b: Vec<&str> = b.split('-').collect();
@@ -78,4 +78,21 @@ fn natural_cmp(a: &str, b: &str) -> std::cmp::Ordering {
         }
     }
     segs_a.len().cmp(&segs_b.len())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_empty_obj() {
+        let r = parse_ism_map_from_str("{}");
+        assert!(r.is_ok());
+        assert!(r.unwrap().is_empty());
+    }
+
+    #[test]
+    fn parse_invalid_returns_err() {
+        assert!(parse_ism_map_from_str("not json").is_err());
+    }
 }

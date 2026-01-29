@@ -1,7 +1,7 @@
 {
   "name": "ismism-trace",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,16 +17,18 @@
     "release:major": "node scripts/release.mjs major"
   },
   "dependencies": {
-    "vue": "^3.5.27",
     "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2"
+    "@tauri-apps/plugin-dialog": "^2.6.0",
+    "@tauri-apps/plugin-opener": "^2",
+    "tauri-plugin-app-events-api": "^0.2.0",
+    "vue": "^3.5.27"
   },
   "devDependencies": {
-    "sharp": "^0.33.5",
+    "@tauri-apps/cli": "^2",
     "@vitejs/plugin-vue": "^6.0.3",
+    "sharp": "^0.33.5",
     "typescript": "~5.9.3",
     "vite": "^7.3.1",
-    "vue-tsc": "^3.2.4",
-    "@tauri-apps/cli": "^2"
+    "vue-tsc": "^3.2.4"
   }
 }

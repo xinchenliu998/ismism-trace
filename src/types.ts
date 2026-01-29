@@ -30,3 +30,8 @@ export interface ProgressEntry {
 
 /** 进度表：id -> 进度 */
 export type ProgressMap = Record<string, ProgressEntry>;
+
+/** 更新 ism 校验通过时的预览 */
+export interface IsmUpdatePreview {
+  entry_count: number;
+}

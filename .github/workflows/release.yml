@@ -209,10 +209,16 @@ jobs:
           fi
 
       - name: Generate release body
+        env:
+          VER: ${{ steps.version.outputs.version }}
         run: |
-          TAG="${{ github.ref_name }}"
-          VER="${TAG#v}"
           > release_body.md
+          # 从 CHANGELOG.md 提取当前版本的 changelog 段落（## [VER] 到下一个 ## 之前）
+          if [ -f CHANGELOG.md ]; then
+            awk -v ver="$VER" 'BEGIN{found=0} $0 ~ "^## \\[" ver "\\]" {found=1; next} found {if (/^## /) exit; print}' CHANGELOG.md >> release_body.md
+            echo "" >> release_body.md
+          fi
+          # Android 包说明
           if [ -f "release/ismism-trace-${VER}-android-universal.apk" ]; then
             echo "> Android 包已在 CI 中完成签名，可直接安装。" >> release_body.md
           elif [ -f "release/ismism-trace-${VER}-android-universal-unsigned.apk" ]; then

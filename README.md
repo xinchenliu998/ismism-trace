@@ -31,6 +31,7 @@ pnpm release major    # major 版本（0.1.0 -> 1.0.0）
 - [功能说明](docs/features.md)：列表层级、学习进度、筛选、链接、更新数据、多端布局与返回键
 - [配置说明](docs/config.md)：学习程度、数据与存储、ism.json 更新方式
 - [各平台打包说明](docs/build.md)：Windows / Android / macOS / Linux 构建与发布、CHANGELOG 与 CI
+- [项目技术说明](docs/tech-overview.md)：各文件与目录作用，便于定位修改
 - 项目根目录 `CHANGELOG.md`：按版本维护更新说明，CI 创建 Release 时自动将当前版本段落写入 Release 正文；编写格式与示例见 [打包说明 - Release 正文与 Changelog](docs/build.md#release-正文与-changelog)
 
 ## 推荐 IDE

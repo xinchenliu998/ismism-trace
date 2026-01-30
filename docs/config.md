@@ -26,6 +26,12 @@
 
 - **主题偏好**：用户通过顶栏亮/暗切换按钮选择后，选择会持久化到本地，下次启动沿用。持久化使用的 key 由前端根组件定义，用于区分「跟随系统」与「固定亮色/暗色」；具体 key 名见 `App.vue` 中主题相关逻辑。
 
+## 版本号
+
+- **版本源**：应用版本以项目根目录 `package.json` 的 `version` 为准。
+- **同步范围**：使用 `pnpm release` 升级版本时，脚本会将该版本同步到 `src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml` 以及 iOS 工程（`gen/apple/project.yml`、`gen/apple/ismism-trace_iOS/Info.plist`），保证 Windows / macOS / Linux / Android / iOS 各平台包内显示的版本一致。
+- **手动改版本**：若手动修改 `package.json` 的版本，需同步修改上述 Tauri 与 iOS 文件，否则各平台包内版本会不一致。详见 [打包说明 - 发布与 Tag](build.md#发布与-taggithub-可浏览下载)。
+
 ## 构建与安装包
 
 - **tauri.conf.json → bundle.targets**：控制打包产物。当前为 `["app"]`，仅生成 exe（位于 `src-tauri/target/release/ismism-trace.exe`），不生成 MSI/NSIS 安装包，可避免 Tauri 从 GitHub 下载 WiX/NSIS 时的网络错误（如 `protocol: http response missing version`）。

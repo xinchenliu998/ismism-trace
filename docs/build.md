@@ -73,6 +73,53 @@
 
 **架构：** 默认按当前机器架构（Apple Silicon 为 aarch64，Intel 为 x86_64）。需通用包时先安装双架构 target：`rustup target add aarch64-apple-darwin x86_64-apple-darwin`，再使用 `tauri build --target universal-apple-darwin`（见 Tauri 文档）。
 
+**CI 产物：** GitHub Actions 构建时使用 `tauri build --bundles dmg`，产出 **DMG**（`*-macos-aarch64.dmg`），便于分发与安装；若未生成 dmg 则回退为 .app 的 zip。
+
+### macOS「已损坏」提示
+
+从网络下载的**未签名**应用会被 macOS 标记为隔离属性，首次打开可能提示「xxx 已损坏，无法打开」。可任选其一：
+
+1. **移除隔离属性**（推荐，无需签名）：在终端执行（路径按实际安装位置）：
+   ```bash
+   xattr -cr /Applications/ismism-trace.app
+   ```
+   若从 DMG 拖到 Applications 后提示损坏，执行上述命令后再打开即可。
+
+2. **本机构建并签名**：在 Mac 上配置代码签名后执行 `pnpm tauri build --bundles dmg`，产出的 DMG/.app 签名后分发，则不会出现此提示。签名步骤见下文。
+
+### macOS 签名
+
+**前置：** 需 [Apple Developer](https://developer.apple.com) 账号（付费约 99 美元/年可上架与公证；免费账号仅可本地签名，无法公证，打开时仍可能提示「未验证开发者」）。
+
+**证书类型：**
+
+- **Developer ID Application**：在 App Store 外分发（本应用 DMG 即属此类），签名后建议配合公证（Notarization），用户打开时不再提示损坏。
+- **Apple Distribution**：用于提交 Mac App Store。
+
+**本机签名（推荐先在本机打通）：**
+
+1. 在 Mac 上生成 CSR：钥匙串访问 → 证书助理 → 从证书颁发机构请求证书；保存 `.certSigningRequest`。
+2. 登录 [Certificates, IDs & Profiles](https://developer.apple.com/account/resources/certificates/list) → **Create a certificate** → 选择 **Developer ID Application**，上传 CSR，下载 `.cer` 并双击安装到钥匙串。
+3. 查看签名身份（名称会出现在 Tauri 配置中）：
+   ```bash
+   security find-identity -v -p codesigning
+   ```
+4. 二选一配置 Tauri：
+   - 在 `tauri.conf.json` 的 `bundle` 下增加 `macOS`，设置 `signingIdentity` 为上述输出中带引号的完整名称（如 `"Developer ID Application: Your Name (TEAM_ID)"`）；
+   - 或构建前设置环境变量：`export APPLE_SIGNING_IDENTITY="Developer ID Application: ..."`
+5. 构建：`pnpm tauri build --bundles dmg`，产物即已签名。
+
+**公证（Notarization，可选但推荐）：**  
+使用 Developer ID 签名的应用建议提交 Apple 公证，用户打开时不再被 Gatekeeper 拦截。需在构建环境提供 Apple 认证方式之一：
+
+- **Apple ID**：设置环境变量 `APPLE_ID`、`APPLE_PASSWORD`（[应用专用密码](https://support.apple.com/zh-cn/HT204397)）、`APPLE_TEAM_ID`，Tauri 构建时会自动请求公证。
+- **App Store Connect API Key**：设置 `APPLE_API_ISSUER`、`APPLE_API_KEY`、`APPLE_API_KEY_PATH`（.p8 私钥路径），适合 CI。
+
+**CI 中签名：**  
+在 GitHub Actions 等 CI 中需将证书导出为 .p12，用 Base64 存入 Secret（如 `APPLE_CERTIFICATE`），并设置 `APPLE_CERTIFICATE_PASSWORD`；在 job 中创建临时钥匙串、导入证书、设置 `APPLE_SIGNING_IDENTITY` 后再执行 `pnpm tauri build --bundles dmg`。完整步骤与示例见 [Tauri 官方：macOS Code Signing](https://v2.tauri.app/distribute/sign/macos)。
+
+**临时/仅本机：** 若仅在本机运行、不对外分发，可在配置中设置 `signingIdentity: "-"` 启用 ad-hoc 签名（不依赖 Apple 证书），但无法通过公证，其他用户下载后仍可能被系统拦截。
+
 ---
 
 ## iOS
@@ -175,6 +222,19 @@ pnpm tauri ios build
 
 ## Linux
 
+**前置依赖：** 需安装 Tauri/GTK 相关系统库，否则会报 `gdk-3.0`、`pkg-config` 等错误。
+
+- **Debian / Ubuntu：**
+  ```bash
+  sudo apt update
+  sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+    libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libgtk-3-dev
+  ```
+- **Arch：** `sudo pacman -S --needed webkit2gtk-4.1 base-devel curl wget file openssl appmenu-gtk-module libappindicator-gtk3 librsvg xdotool`
+- **Fedora：** `sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget file libappindicator-gtk3-devel librsvg2-devel libxdo-devel` 及 `c-development` 组。
+
+更多发行版见 [Tauri 官方：Prerequisites - Linux](https://v2.tauri.app/start/prerequisites/#linux)。若仍报 `gdk-3.0` 未找到，请安装 GTK3 开发包（如 Debian/Ubuntu 的 `libgtk-3-dev`）。
+
 **命令：** `pnpm tauri build`（在 Linux 上执行）
 
 | 产物 | 路径 |
@@ -188,9 +248,9 @@ pnpm tauri ios build
 
 ## 发布与 Tag（GitHub 可浏览/下载）
 
-**CI 构建范围：** 推送 tag 后，GitHub Actions 会自动构建 **Windows exe**、**macOS 应用**（Apple Silicon，产出 `*-macos-aarch64.zip`）与 **Android APK**，并创建 Release 附带上述产物。**不支持 iOS 构建**；iOS 需在本地 macOS 上执行 `pnpm tauri ios build` 自行构建与签名。
+**CI 构建范围：** 推送 tag 后，GitHub Actions 会自动构建 **Windows exe**、**macOS 应用**（Apple Silicon，产出 `*-macos-aarch64.zip`）、**Linux**（x86_64，产出 `*-linux-x64.AppImage` / `*-linux-x64.deb`）与 **Android APK**，并创建 Release 附带上述产物。**不支持 iOS 构建**；iOS 需在本地 macOS 上执行 `pnpm tauri ios build` 自行构建与签名。
 
-版本号以 `package.json` / `tauri.conf.json` 的 `version` 为准。
+版本号以 `package.json` 为准；发布脚本会在 bump 时同步到 `src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml` 以及 iOS 的 `gen/apple/project.yml`、`gen/apple/ismism-trace_iOS/Info.plist`，保证各平台包内显示的版本一致。Android 的 versionName/versionCode 由 Tauri 构建时根据 `tauri.conf.json` 的 version 生成。
 
 ### 一键发布（推荐）
 
@@ -219,8 +279,8 @@ pnpm release major    # major 版本（0.1.0 -> 1.0.0）
 
 1. 检查当前版本的 tag 是否已存在于远程
 2. 根据检查结果决定使用当前版本或升级版本
-3. 如需升级版本，更新 `package.json` 中的版本号
-4. 如需升级版本，提交更改（commit message: `chore: bump version to x.x.x`）
+3. 如需升级版本，更新 `package.json` 中的版本号，并同步到 `src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`、`src-tauri/gen/apple/project.yml`、`src-tauri/gen/apple/ismism-trace_iOS/Info.plist`（保证 Android/iOS/桌面包内显示版本一致）
+4. 如需升级版本，提交上述文件的更改（commit message: `chore: bump version to x.x.x`）
 5. 创建带注释的 tag（格式：`vx.x.x`）
 6. 推送代码和 tag 到远程仓库
 7. 触发 GitHub Actions 自动构建和创建 Release
@@ -234,7 +294,7 @@ pnpm release major    # major 版本（0.1.0 -> 1.0.0）
 - 如果发布过程中任何步骤失败，脚本会自动回滚所有更改（删除 tag、回滚提交、恢复版本号）
 - 如果 tag 已存在于远程，会提示错误并退出
 
-推送 tag 后，GitHub Actions 会自动构建 Windows exe、macOS 应用（aarch64 zip）和 Android APK，并创建 Release。在 **Actions** 页查看构建进度，完成后在 **Releases** 页即可下载。iOS 不在 CI 中构建，需在本地 Mac 上自行构建。
+推送 tag 后，GitHub Actions 会自动构建 Windows exe、macOS 应用（aarch64 zip）、Linux（x86_64 AppImage/deb）和 Android APK，并创建 Release。在 **Actions** 页查看构建进度，完成后在 **Releases** 页即可下载。iOS 不在 CI 中构建，需在本地 Mac 上自行构建。
 
 **只想重新跑一次构建、不打新 tag 时：**
 
@@ -242,7 +302,7 @@ pnpm release major    # major 版本（0.1.0 -> 1.0.0）
 2. **手动触发**：在 **Actions** 页选择 **Release** workflow，点击 **Run workflow**，在 **要重新构建的 tag** 输入框填写 tag（如 `v0.1.0`），运行后会 checkout 该 tag 并重新构建、更新该 tag 的 Release。
 
 **Release 正文与 Changelog：**  
-CI 创建 Release 时，会从项目根目录的 `CHANGELOG.md` 中提取**当前版本**对应的段落（以 `## [x.y.z]` 开头的区块，到下一个 `##` 或文件末尾为止）写入 Release 正文，再追加 Android、macOS 包说明。版本号需与 tag 一致（如 tag `v0.1.1` 对应 `## [0.1.1]`）。
+CI 创建 Release 时，会从项目根目录的 `CHANGELOG.md` 中提取**当前版本**对应的段落（以 `## [x.y.z]` 开头的区块，到下一个 `##` 或文件末尾为止）写入 Release 正文，再追加 Android、macOS、Linux 包说明。版本号需与 tag 一致（如 tag `v0.1.1` 对应 `## [0.1.1]`）。
 
 **Changelog 编写示例：**
 
@@ -285,7 +345,9 @@ CI 创建 Release 时，会从项目根目录的 `CHANGELOG.md` 中提取**当�
 **1. 更新版本号并打 tag**
 
 ```bash
-# 手动更新 package.json 中的 version
+# 手动更新 package.json 中的 version，并同步到 src-tauri/tauri.conf.json、src-tauri/Cargo.toml、
+# src-tauri/gen/apple/project.yml（CFBundleShortVersionString、CFBundleVersion）、
+# src-tauri/gen/apple/ismism-trace_iOS/Info.plist，否则各平台包内显示的版本会不一致
 # 然后创建并推送 tag
 git tag -a v0.1.0 -m "Release v0.1.0"
 git push origin v0.1.0
@@ -301,9 +363,12 @@ pnpm tauri android build
 pnpm release:pack
 ```
 
-脚本会将 exe 与 APK 复制到项目根目录下的 `release/`，文件名形如：
-- `ismism-trace-0.1.0-win-x64.exe`
+脚本仅复制当前环境下已存在的构建产物到项目根目录下的 `release/`，无对应平台包时不报错（本机通常只有部分平台产物）。文件名形如：
+- `ismism-trace-0.1.0-win-x64.exe`（Windows 上 `pnpm tauri build`）
+- `ismism-trace-0.1.0-macos-aarch64.dmg`（macOS 上 `pnpm tauri build --bundles dmg`）
+- `ismism-trace-0.1.0-ios.ipa`（macOS 上 `pnpm tauri ios build`）
 - `ismism-trace-0.1.0-android-universal.apk`（或 `-android-universal-unsigned.apk` 若未配置签名）
+- `ismism-trace-0.1.0-linux-x64.AppImage` / `ismism-trace-0.1.0-linux-x64.deb`（Linux 上 `pnpm tauri build`）
 
 `release/` 已加入 `.gitignore`，仅用于本地上传，不提交。
 

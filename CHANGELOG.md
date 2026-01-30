@@ -2,7 +2,17 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。版本号与 tag 一致（如 v0.1.0）。
 
-## [Unreleased]
+## [0.1.3]
+
+### Added
+
+- Linux 构建与发布：GitHub Actions 增加 Linux 构建（x86_64，产出 `*-linux-x64.AppImage` / `*-linux-x64.deb`）；Release 正文与文档补充 Linux 包说明
+- 本地打包脚本 `release-pack.mjs` 支持收集 Linux AppImage 与 .deb 到 `release/`
+- 打包说明（docs/build.md）：Linux 前置依赖（GTK/WebKit 等）、各发行版安装示例与 CI 构建范围
+
+### Changed
+
+- 文档：README、build.md、tech-overview.md 中发布/CI/本地打包描述均补充 Linux 平台
 
 ## [0.1.2]
 
@@ -34,3 +44,5 @@
 - 主义主义学习进度：树形列表、详情、学习程度、搜索、展开/折叠
 - 跨平台：Windows、Android；链接用系统浏览器打开
 - 一键发布脚本与 GitHub Release 自动构建
+
+## [Unreleased]

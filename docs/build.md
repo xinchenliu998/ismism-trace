@@ -222,6 +222,19 @@ pnpm tauri ios build
 
 ## Linux
 
+**前置依赖：** 需安装 Tauri/GTK 相关系统库，否则会报 `gdk-3.0`、`pkg-config` 等错误。
+
+- **Debian / Ubuntu：**
+  ```bash
+  sudo apt update
+  sudo apt install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+    libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev libgtk-3-dev
+  ```
+- **Arch：** `sudo pacman -S --needed webkit2gtk-4.1 base-devel curl wget file openssl appmenu-gtk-module libappindicator-gtk3 librsvg xdotool`
+- **Fedora：** `sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget file libappindicator-gtk3-devel librsvg2-devel libxdo-devel` 及 `c-development` 组。
+
+更多发行版见 [Tauri 官方：Prerequisites - Linux](https://v2.tauri.app/start/prerequisites/#linux)。若仍报 `gdk-3.0` 未找到，请安装 GTK3 开发包（如 Debian/Ubuntu 的 `libgtk-3-dev`）。
+
 **命令：** `pnpm tauri build`（在 Linux 上执行）
 
 | 产物 | 路径 |
@@ -235,7 +248,7 @@ pnpm tauri ios build
 
 ## 发布与 Tag（GitHub 可浏览/下载）
 
-**CI 构建范围：** 推送 tag 后，GitHub Actions 会自动构建 **Windows exe**、**macOS 应用**（Apple Silicon，产出 `*-macos-aarch64.zip`）与 **Android APK**，并创建 Release 附带上述产物。**不支持 iOS 构建**；iOS 需在本地 macOS 上执行 `pnpm tauri ios build` 自行构建与签名。
+**CI 构建范围：** 推送 tag 后，GitHub Actions 会自动构建 **Windows exe**、**macOS 应用**（Apple Silicon，产出 `*-macos-aarch64.zip`）、**Linux**（x86_64，产出 `*-linux-x64.AppImage` / `*-linux-x64.deb`）与 **Android APK**，并创建 Release 附带上述产物。**不支持 iOS 构建**；iOS 需在本地 macOS 上执行 `pnpm tauri ios build` 自行构建与签名。
 
 版本号以 `package.json` / `tauri.conf.json` 的 `version` 为准。
 
@@ -281,7 +294,7 @@ pnpm release major    # major 版本（0.1.0 -> 1.0.0）
 - 如果发布过程中任何步骤失败，脚本会自动回滚所有更改（删除 tag、回滚提交、恢复版本号）
 - 如果 tag 已存在于远程，会提示错误并退出
 
-推送 tag 后，GitHub Actions 会自动构建 Windows exe、macOS 应用（aarch64 zip）和 Android APK，并创建 Release。在 **Actions** 页查看构建进度，完成后在 **Releases** 页即可下载。iOS 不在 CI 中构建，需在本地 Mac 上自行构建。
+推送 tag 后，GitHub Actions 会自动构建 Windows exe、macOS 应用（aarch64 zip）、Linux（x86_64 AppImage/deb）和 Android APK，并创建 Release。在 **Actions** 页查看构建进度，完成后在 **Releases** 页即可下载。iOS 不在 CI 中构建，需在本地 Mac 上自行构建。
 
 **只想重新跑一次构建、不打新 tag 时：**
 
@@ -289,7 +302,7 @@ pnpm release major    # major 版本（0.1.0 -> 1.0.0）
 2. **手动触发**：在 **Actions** 页选择 **Release** workflow，点击 **Run workflow**，在 **要重新构建的 tag** 输入框填写 tag（如 `v0.1.0`），运行后会 checkout 该 tag 并重新构建、更新该 tag 的 Release。
 
 **Release 正文与 Changelog：**  
-CI 创建 Release 时，会从项目根目录的 `CHANGELOG.md` 中提取**当前版本**对应的段落（以 `## [x.y.z]` 开头的区块，到下一个 `##` 或文件末尾为止）写入 Release 正文，再追加 Android、macOS 包说明。版本号需与 tag 一致（如 tag `v0.1.1` 对应 `## [0.1.1]`）。
+CI 创建 Release 时，会从项目根目录的 `CHANGELOG.md` 中提取**当前版本**对应的段落（以 `## [x.y.z]` 开头的区块，到下一个 `##` 或文件末尾为止）写入 Release 正文，再追加 Android、macOS、Linux 包说明。版本号需与 tag 一致（如 tag `v0.1.1` 对应 `## [0.1.1]`）。
 
 **Changelog 编写示例：**
 
@@ -348,8 +361,9 @@ pnpm tauri android build
 pnpm release:pack
 ```
 
-脚本会将 exe 与 APK 复制到项目根目录下的 `release/`，文件名形如：
+脚本会将 exe、Linux AppImage/deb 与 APK 复制到项目根目录下的 `release/`，文件名形如：
 - `ismism-trace-0.1.0-win-x64.exe`
+- `ismism-trace-0.1.0-linux-x64.AppImage` / `ismism-trace-0.1.0-linux-x64.deb`（需在 Linux 上执行过 `pnpm tauri build`）
 - `ismism-trace-0.1.0-android-universal.apk`（或 `-android-universal-unsigned.apk` 若未配置签名）
 
 `release/` 已加入 `.gitignore`，仅用于本地上传，不提交。

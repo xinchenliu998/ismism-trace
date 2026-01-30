@@ -80,7 +80,7 @@
 | 文件 | 作用 |
 |------|------|
 | `release.mjs` | 一键发布：检查当前版本 tag 是否已在远程；未发布则用当前版本，已发布则按 patch/minor/major 升级；更新 `package.json`、提交、创建 tag、推送；失败时回滚。 |
-| `release-pack.mjs` | 本地打包收集：将 `src-tauri/target/release/*.exe` 与 `gen/android/.../apk/universal/release/*.apk` 复制到根目录 `release/` 并重命名为带版本与平台后缀的文件名。 |
+| `release-pack.mjs` | 本地打包收集：将 `src-tauri/target/release/*.exe`、`bundle/appimage/*.AppImage` / `bundle/deb/*.deb`（Linux）与 `gen/android/.../apk/universal/release/*.apk` 复制到根目录 `release/` 并重命名为带版本与平台后缀的文件名。 |
 | `prepare-icon.mjs` | 图标预处理：将指定图片（默认 `image/主义主义.jpg`）转为 1024×1024 的 `src-tauri/app-icon.png`，供 `pnpm tauri icon` 使用。 |
 
 ---
@@ -89,7 +89,7 @@
 
 | 文件 | 作用 |
 |------|------|
-| `release.yml` | 推送 `v*` tag 时：并行构建 Windows exe、macOS 应用（aarch64 zip）与 Android APK（含签名配置）；**不构建 iOS**；下载产物、从 `CHANGELOG.md` 提取当前版本段落生成 Release 正文、创建 GitHub Release 并上传 exe/macos zip/apk。 |
+| `release.yml` | 推送 `v*` tag 时：并行构建 Windows exe、macOS 应用（aarch64 zip）、Linux（x86_64 AppImage/deb）与 Android APK（含签名配置）；**不构建 iOS**；下载产物、从 `CHANGELOG.md` 提取当前版本段落生成 Release 正文、创建 GitHub Release 并上传 exe/macos/linux/apk。 |
 
 ---
 

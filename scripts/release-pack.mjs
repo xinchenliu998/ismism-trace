@@ -1,9 +1,9 @@
 /**
- * 将 Windows exe 与 Android APK 收集到 release/ 目录，便于上传到 GitHub Release。
- * 使用前需已执行：pnpm tauri build、pnpm tauri android build。
+ * 将 Windows exe、Linux AppImage/deb 与 Android APK 收集到 release/ 目录，便于上传到 GitHub Release。
+ * 使用前需已执行：pnpm tauri build（Windows/Linux 在本机对应系统）、pnpm tauri android build。
  * 用法: node scripts/release-pack.mjs
  */
-import { readFileSync, mkdirSync, copyFileSync, existsSync } from "node:fs";
+import { readFileSync, mkdirSync, copyFileSync, existsSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -39,6 +39,19 @@ const apkUnsigned = join(apkDir, "app-universal-release-unsigned.apk");
 if (!copy(apkSigned, `${name}-${version}-android-universal.apk`)) {
   copy(apkUnsigned, `${name}-${version}-android-universal-unsigned.apk`);
 }
+
+// Linux：AppImage / .deb（产物名含版本，如 ismism-trace_0.1.0_amd64.AppImage）
+const appimageDir = join(root, "src-tauri/target/release/bundle/appimage");
+const debDir = join(root, "src-tauri/target/release/bundle/deb");
+function firstFile(dir, suffix) {
+  if (!existsSync(dir)) return null;
+  const file = readdirSync(dir).find((f) => f.endsWith(suffix));
+  return file ? join(dir, file) : null;
+}
+const appimageSrc = firstFile(appimageDir, ".AppImage");
+const debSrc = firstFile(debDir, ".deb");
+if (appimageSrc) copy(appimageSrc, `${name}-${version}-linux-x64.AppImage`);
+if (debSrc) copy(debSrc, `${name}-${version}-linux-x64.deb`);
 
 if (artifacts.length === 0) {
   console.error("未找到任何构建产物。请先执行：");

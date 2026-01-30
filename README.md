@@ -26,7 +26,7 @@ pnpm release major    # major 版本（0.1.0 -> 1.0.0）
 - 如果当前版本的 tag 在远程不存在 → 使用当前版本发布（不升级版本）
 - 如果当前版本的 tag 在远程已存在 → 根据版本类型升级版本后再发布
 
-推送 tag 后，GitHub Actions 会自动构建 Windows exe、macOS 应用（Apple Silicon）与 Android APK，并创建 Release；**不支持 iOS 构建**，iOS 需在本地 Mac 上自行构建。详见 [打包说明 - 发布与 Tag](docs/build.md#发布与-taggithub-可浏览下载)。
+推送 tag 后，GitHub Actions 会自动构建 Windows exe、macOS 应用（Apple Silicon）、Linux（x86_64 AppImage/deb）与 Android APK，并创建 Release；**不支持 iOS 构建**，iOS 需在本地 Mac 上自行构建。详见 [打包说明 - 发布与 Tag](docs/build.md#发布与-taggithub-可浏览下载)。
 
 ## 文档
 

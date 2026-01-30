@@ -46,7 +46,7 @@ pnpm tauri icon ./app-icon.png
 
 - **桌面（Windows/macOS/Linux）**：`src-tauri/icons/`含 `32x32.png`、`128x128.png`、`128x128@2x.png`、`icon.ico`、`icon.icns` 等，由 `tauri.conf.json` 的 `bundle.icon` 引用。
 - **Android**：自动写入 `src-tauri/gen/android/app/src/main/res/mipmap-*/`（各分辨率 `ic_launcher.png`、`ic_launcher_round.png`、`ic_launcher_foreground.png`）。
-- **iOS**：自动写入 `src-tauri/gen/apple/` 下对应 AppIcon 资源（若存在 iOS 工程）。
+- **iOS**：自动写入 `src-tauri/gen/apple/Assets.xcassets/AppIcon.appiconset/`（需已执行过 `pnpm tauri ios init`，存在 iOS 工程时才会写入）。若先做了 `ios init` 再改图标，需再执行一次 `pnpm icon:gen` 或 `pnpm tauri icon`，否则 iOS 工程里仍是默认图标。
 
 ## 可选参数
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import IsmList from "./components/IsmList.vue";
 import IsmDetail from "./components/IsmDetail.vue";
@@ -12,6 +12,37 @@ import {
 } from "./api";
 import type { IsmItem } from "./types";
 import type { ProgressMap } from "./types";
+
+const THEME_KEY = "theme";
+type ThemeMode = "light" | "dark" | "system";
+
+const theme = ref<ThemeMode>(
+  (localStorage.getItem(THEME_KEY) as ThemeMode) ?? "system"
+);
+const systemDark = ref(
+  typeof window !== "undefined" &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+);
+
+const effectiveTheme = computed<"light" | "dark">(() => {
+  if (theme.value === "system") return systemDark.value ? "dark" : "light";
+  return theme.value;
+});
+
+function applyTheme() {
+  const root = document.documentElement;
+  if (theme.value === "system") {
+    root.removeAttribute("data-theme");
+  } else {
+    root.setAttribute("data-theme", theme.value);
+  }
+}
+
+function toggleTheme() {
+  theme.value = effectiveTheme.value === "light" ? "dark" : "light";
+  localStorage.setItem(THEME_KEY, theme.value);
+  applyTheme();
+}
 
 // Android 返回键 / 全面屏返回手势：仅在移动端存在
 const setupBackKey = async () => {
@@ -34,7 +65,17 @@ const progress = ref<ProgressMap>({});
 const selectedId = ref<string | null>(null);
 const searchKeyword = ref("");
 
+let mediaQuery: MediaQueryList | null = null;
+let mediaQueryHandler: ((e: MediaQueryListEvent) => void) | null = null;
+
 onMounted(async () => {
+  applyTheme();
+  mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  systemDark.value = mediaQuery.matches;
+  mediaQueryHandler = (e: MediaQueryListEvent) => {
+    systemDark.value = e.matches;
+  };
+  mediaQuery.addEventListener("change", mediaQueryHandler);
   setupBackKey();
   try {
     const [list, prog] = await Promise.all([getIsmList(), getProgress()]);
@@ -42,6 +83,12 @@ onMounted(async () => {
     progress.value = prog;
   } catch (e) {
     console.error("加载失败", e);
+  }
+});
+
+onUnmounted(() => {
+  if (mediaQuery && mediaQueryHandler) {
+    mediaQuery.removeEventListener("change", mediaQueryHandler);
   }
 });
 
@@ -114,6 +161,17 @@ async function runIsmUpdate() {
       />
       <button
         type="button"
+        class="theme-btn"
+        :aria-label="effectiveTheme === 'light' ? '切换到暗色模式' : '切换到亮色模式'"
+        :title="effectiveTheme === 'light' ? '切换到暗色模式' : '切换到亮色模式'"
+        @click="toggleTheme"
+      >
+        <!-- 当前为亮色时显示月亮，点击切暗色；当前为暗色时显示太阳，点击切亮色 -->
+        <svg v-if="effectiveTheme === 'light'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+      </button>
+      <button
+        type="button"
         class="update-btn"
         aria-label="更新主义数据"
         :disabled="ismUpdateLoading"
@@ -153,8 +211,8 @@ async function runIsmUpdate() {
   font-family: system-ui, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   font-size: 15px;
   line-height: 1.5;
-  color: #1e293b;
-  background: #f1f5f9;
+  color: var(--text-secondary);
+  background: var(--bg-page);
 }
 * {
   box-sizing: border-box;
@@ -175,8 +233,8 @@ async function runIsmUpdate() {
   gap: 0.75rem;
   padding: 0.6rem 1rem 0.6rem 0.75rem;
   padding-top: max(0.6rem, env(safe-area-inset-top));
-  background: #fff;
-  border-bottom: 1px solid #e2e8f0;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 .back-btn {
@@ -187,7 +245,7 @@ async function runIsmUpdate() {
   border: none;
   border-radius: 10px;
   background: transparent;
-  color: #475569;
+  color: var(--icon-color);
   cursor: pointer;
   align-items: center;
   justify-content: center;
@@ -200,14 +258,14 @@ async function runIsmUpdate() {
   display: block;
 }
 .back-btn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: var(--hover-bg);
+  color: var(--icon-hover);
 }
 .header .title {
   margin: 0;
   font-size: 1.1rem;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-primary);
   letter-spacing: -0.02em;
   flex: 1;
   min-width: 0;
@@ -217,21 +275,45 @@ async function runIsmUpdate() {
   max-width: 300px;
   min-width: 0;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 10px;
   font-size: 0.9rem;
-  background: #f8fafc;
-  color: #1e293b;
+  background: var(--bg-input);
+  color: var(--text-secondary);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .search::placeholder {
-  color: #94a3b8;
+  color: var(--text-placeholder);
 }
 .search:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-  background: #fff;
+  border-color: var(--accent);
+  box-shadow: var(--focus-ring);
+  background: var(--bg-panel);
+}
+.theme-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-panel);
+  color: var(--icon-color);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.theme-btn svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  display: block;
+}
+.theme-btn:hover {
+  background: var(--hover-bg);
+  color: var(--icon-hover);
 }
 .update-btn {
   flex-shrink: 0;
@@ -241,10 +323,10 @@ async function runIsmUpdate() {
   width: 2.5rem;
   height: 2.5rem;
   padding: 0;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: #fff;
-  color: #475569;
+  background: var(--bg-panel);
+  color: var(--icon-color);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
@@ -254,8 +336,8 @@ async function runIsmUpdate() {
   display: block;
 }
 .update-btn:hover:not(:disabled) {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: var(--hover-bg);
+  color: var(--icon-hover);
 }
 .update-btn:disabled {
   opacity: 0.7;
@@ -270,7 +352,7 @@ async function runIsmUpdate() {
 .update-err {
   margin: 0;
   font-size: 0.8rem;
-  color: #dc2626;
+  color: var(--danger);
   flex-basis: 100%;
   order: 1;
 }
@@ -283,15 +365,15 @@ async function runIsmUpdate() {
 .sidebar {
   width: 320px;
   flex-shrink: 0;
-  background: #fff;
-  border-right: 1px solid #e2e8f0;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
   overflow: hidden;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.03);
 }
 .content {
   flex: 1;
   min-width: 0;
-  background: #f8fafc;
+  background: var(--bg-page);
 }
 
 /* 安卓/小屏：单栏切换，列表与详情二选一，顶部返回；预留顶部安全区避免被状态栏遮挡 */
@@ -317,7 +399,7 @@ async function runIsmUpdate() {
     width: 100%;
     max-height: 100%;
     border-right: none;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border);
     box-shadow: none;
   }
   .app.has-selection .sidebar {
@@ -338,33 +420,5 @@ async function runIsmUpdate() {
     max-width: 120px;
   }
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #e2e8f0;
-    background: #0f172a;
-  }
-  .header {
-    background: #1e293b;
-    border-color: #334155;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  }
-  .header .title { color: #f1f5f9; }
-  .sidebar {
-    background: #1e293b;
-    border-color: #334155;
-    box-shadow: 2px 0 12px rgba(0, 0, 0, 0.2);
-  }
-  .content { background: #0f172a; }
-  .search {
-    background: #334155;
-    border-color: #475569;
-    color: #f1f5f9;
-  }
-  .search::placeholder { color: #94a3b8; }
-  .search:focus {
-    border-color: #60a5fa;
-    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.2);
-    background: #334155;
-  }
-}
+/* 暗色模式由 theme.css 的 :root 变量统一控制，此处无需重复覆盖 */
 </style>

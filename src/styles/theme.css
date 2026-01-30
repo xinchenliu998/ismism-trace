@@ -1,0 +1,143 @@
+/**
+ * 亮/暗主题 CSS 变量，跟随系统 prefers-color-scheme。
+ * 各组件通过 var(--xxx) 引用，保证暗色模式下背景与文字可区分。
+ */
+:root {
+  --bg-page: #f1f5f9;
+  --bg-panel: #fff;
+  --bg-input: #f8fafc;
+  --text-primary: #0f172a;
+  --text-secondary: #1e293b;
+  --text-muted: #64748b;
+  --text-placeholder: #94a3b8;
+  --border: #e2e8f0;
+  --border-strong: #e8e8e8;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-text: #fff;
+  --hover-bg: #f1f5f9;
+  --selected-bg: #e3f2fd;
+  --selected-color: #1565c0;
+  --danger: #dc2626;
+  --icon-color: #475569;
+  --icon-hover: #0f172a;
+  /* 学习程度徽章 */
+  --level-0-bg: #e2e8f0;
+  --level-0-color: #475569;
+  --level-0-unlearned-bg: #cbd5e1;
+  --level-0-unlearned-color: #64748b;
+  --level-1-bg: #fef3c7;
+  --level-1-color: #b45309;
+  --level-2-bg: #dbeafe;
+  --level-2-color: #1d4ed8;
+  --level-3-bg: #d1fae5;
+  --level-3-color: #047857;
+  --level-4-bg: #ede9fe;
+  --level-4-color: #6d28d9;
+  --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-page: #0f172a;
+    --bg-panel: #1e293b;
+    --bg-input: #334155;
+    --text-primary: #f1f5f9;
+    --text-secondary: #e2e8f0;
+    --text-muted: #94a3b8;
+    --text-placeholder: #64748b;
+    --border: #334155;
+    --border-strong: #475569;
+    --accent: #60a5fa;
+    --accent-hover: #93c5fd;
+    --accent-text: #fff;
+    --hover-bg: #334155;
+    --selected-bg: #1e3a5f;
+    --selected-color: #93c5fd;
+    --danger: #f87171;
+    --icon-color: #94a3b8;
+    --icon-hover: #f1f5f9;
+    --level-0-bg: #475569;
+    --level-0-color: #cbd5e1;
+    --level-0-unlearned-bg: #64748b;
+    --level-0-unlearned-color: #94a3b8;
+    --level-1-bg: #78350f;
+    --level-1-color: #fcd34d;
+    --level-2-bg: #1e3a8a;
+    --level-2-color: #93c5fd;
+    --level-3-bg: #064e3b;
+    --level-3-color: #6ee7b7;
+    --level-4-bg: #4c1d95;
+    --level-4-color: #c4b5fd;
+    --focus-ring: 0 0 0 3px rgba(96, 165, 250, 0.25);
+  }
+}
+
+/* 用户手动切换时覆盖系统偏好，data-theme 由顶栏按钮设置 */
+[data-theme="light"] {
+  --bg-page: #f1f5f9;
+  --bg-panel: #fff;
+  --bg-input: #f8fafc;
+  --text-primary: #0f172a;
+  --text-secondary: #1e293b;
+  --text-muted: #64748b;
+  --text-placeholder: #94a3b8;
+  --border: #e2e8f0;
+  --border-strong: #e8e8e8;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --accent-text: #fff;
+  --hover-bg: #f1f5f9;
+  --selected-bg: #e3f2fd;
+  --selected-color: #1565c0;
+  --danger: #dc2626;
+  --icon-color: #475569;
+  --icon-hover: #0f172a;
+  --level-0-bg: #e2e8f0;
+  --level-0-color: #475569;
+  --level-0-unlearned-bg: #cbd5e1;
+  --level-0-unlearned-color: #64748b;
+  --level-1-bg: #fef3c7;
+  --level-1-color: #b45309;
+  --level-2-bg: #dbeafe;
+  --level-2-color: #1d4ed8;
+  --level-3-bg: #d1fae5;
+  --level-3-color: #047857;
+  --level-4-bg: #ede9fe;
+  --level-4-color: #6d28d9;
+  --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+[data-theme="dark"] {
+  --bg-page: #0f172a;
+  --bg-panel: #1e293b;
+  --bg-input: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #e2e8f0;
+  --text-muted: #94a3b8;
+  --text-placeholder: #64748b;
+  --border: #334155;
+  --border-strong: #475569;
+  --accent: #60a5fa;
+  --accent-hover: #93c5fd;
+  --accent-text: #fff;
+  --hover-bg: #334155;
+  --selected-bg: #1e3a5f;
+  --selected-color: #93c5fd;
+  --danger: #f87171;
+  --icon-color: #94a3b8;
+  --icon-hover: #f1f5f9;
+  --level-0-bg: #475569;
+  --level-0-color: #cbd5e1;
+  --level-0-unlearned-bg: #64748b;
+  --level-0-unlearned-color: #94a3b8;
+  --level-1-bg: #78350f;
+  --level-1-color: #fcd34d;
+  --level-2-bg: #1e3a8a;
+  --level-2-color: #93c5fd;
+  --level-3-bg: #064e3b;
+  --level-3-color: #6ee7b7;
+  --level-4-bg: #4c1d95;
+  --level-4-color: #c4b5fd;
+  --focus-ring: 0 0 0 3px rgba(96, 165, 250, 0.25);
+}

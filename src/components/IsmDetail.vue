@@ -146,28 +146,28 @@ function openLink(url: string) {
   padding: 1.25rem 1.5rem;
   overflow-y: auto;
   height: 100%;
-  color: #334155;
+  color: var(--text-secondary);
 }
 .placeholder,
 .loading {
-  color: #94a3b8;
+  color: var(--text-placeholder);
   margin-top: 2rem;
   font-size: 0.95rem;
 }
 .error {
-  color: #dc2626;
+  color: var(--danger);
   font-size: 0.9rem;
 }
 .title {
   margin: 0 0 0.35rem;
   font-size: 1.4rem;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text-primary);
   letter-spacing: -0.02em;
 }
 .en-name {
   margin: 0 0 1.25rem;
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 0.95rem;
 }
 .section {
@@ -177,7 +177,7 @@ function openLink(url: string) {
   margin: 0 0 0.5rem;
   font-size: 0.85rem;
   font-weight: 600;
-  color: #64748b;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -191,21 +191,21 @@ function openLink(url: string) {
 }
 .related li {
   font-size: 0.9rem;
-  color: #475569;
+  color: var(--text-muted);
 }
 .related .ext-link {
-  color: #2563eb;
+  color: var(--accent);
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
 }
 .related .ext-link:hover {
-  color: #1d4ed8;
+  color: var(--accent-hover);
 }
 .progress-section {
   margin-top: 1.5rem;
   padding-top: 1.25rem;
-  border-top: 1px solid #e2e8f0;
+  border-top: 1px solid var(--border);
 }
 .level-select {
   display: flex;
@@ -215,25 +215,25 @@ function openLink(url: string) {
 .level-select select {
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   font-size: 0.95rem;
-  background: #fff;
-  color: #1e293b;
+  background: var(--bg-panel);
+  color: var(--text-secondary);
   min-width: 7rem;
 }
 .save-btn {
   padding: 0.5rem 1rem;
   border-radius: 8px;
   border: none;
-  background: #3b82f6;
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-text);
   cursor: pointer;
   font-size: 0.9rem;
   font-weight: 500;
   transition: background 0.15s;
 }
 .save-btn:hover:not(:disabled) {
-  background: #2563eb;
+  background: var(--accent-hover);
 }
 .save-btn:disabled {
   opacity: 0.5;

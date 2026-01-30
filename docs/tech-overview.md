@@ -80,7 +80,7 @@
 | 文件 | 作用 |
 |------|------|
 | `release.mjs` | 一键发布：检查当前版本 tag 是否已在远程；未发布则用当前版本，已发布则按 patch/minor/major 升级；更新 `package.json`、提交、创建 tag、推送；失败时回滚。 |
-| `release-pack.mjs` | 本地打包收集：将 `src-tauri/target/release/*.exe`、`bundle/appimage/*.AppImage` / `bundle/deb/*.deb`（Linux）与 `gen/android/.../apk/universal/release/*.apk` 复制到根目录 `release/` 并重命名为带版本与平台后缀的文件名。 |
+| `release-pack.mjs` | 本地打包收集：将各平台已存在的构建产物（Windows exe、macOS dmg、iOS ipa、Android apk、Linux AppImage/deb）复制到根目录 `release/` 并重命名为带版本与平台后缀的文件名；无对应包不报错。 |
 | `prepare-icon.mjs` | 图标预处理：将指定图片（默认 `image/主义主义.jpg`）转为 1024×1024 的 `src-tauri/app-icon.png`，供 `pnpm tauri icon` 使用。 |
 
 ---

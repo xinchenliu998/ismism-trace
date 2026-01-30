@@ -361,10 +361,12 @@ pnpm tauri android build
 pnpm release:pack
 ```
 
-脚本会将 exe、Linux AppImage/deb 与 APK 复制到项目根目录下的 `release/`，文件名形如：
-- `ismism-trace-0.1.0-win-x64.exe`
-- `ismism-trace-0.1.0-linux-x64.AppImage` / `ismism-trace-0.1.0-linux-x64.deb`（需在 Linux 上执行过 `pnpm tauri build`）
+脚本仅复制当前环境下已存在的构建产物到项目根目录下的 `release/`，无对应平台包时不报错（本机通常只有部分平台产物）。文件名形如：
+- `ismism-trace-0.1.0-win-x64.exe`（Windows 上 `pnpm tauri build`）
+- `ismism-trace-0.1.0-macos-aarch64.dmg`（macOS 上 `pnpm tauri build --bundles dmg`）
+- `ismism-trace-0.1.0-ios.ipa`（macOS 上 `pnpm tauri ios build`）
 - `ismism-trace-0.1.0-android-universal.apk`（或 `-android-universal-unsigned.apk` 若未配置签名）
+- `ismism-trace-0.1.0-linux-x64.AppImage` / `ismism-trace-0.1.0-linux-x64.deb`（Linux 上 `pnpm tauri build`）
 
 `release/` 已加入 `.gitignore`，仅用于本地上传，不提交。
 

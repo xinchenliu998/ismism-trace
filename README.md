@@ -57,3 +57,7 @@ VS Code + Vue - Official + Tauri + rust-analyzer
 ### Mac
 
 ![Mac](image/Mac.png)
+
+### Linux
+
+![Linux](image/Linux.png)

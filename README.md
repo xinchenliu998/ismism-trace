@@ -1,13 +1,15 @@
 # ismism-trace
 
-基于 Tauri + Vue 的跨平台「主义主义」学习进度管理应用。主义数据来自构建时嵌入及应用数据目录的 `ism.json`，应用内可通过顶栏图标更新数据；可记录每条主义的学习程度（未学习 / 了解 / 学习中 / 掌握 / 精通）。Android 支持返回键与全面屏返回手势。
+基于 Tauri + Vue 的跨平台「主义主义」学习进度管理应用。主义数据来自构建时嵌入及应用数据目录的 `ism.json`，应用内可通过顶栏图标更新数据；可记录每条主义的学习程度（未学习 / 了解 / 学习中 / 掌握 / 精通）。支持亮/暗主题切换（顶栏按钮，选择会记住）；Android 支持返回键与全面屏返回手势。
 
 ## 环境与运行
 
 - 安装依赖：`pnpm install`
 - 桌面开发：`pnpm tauri dev`
 - 桌面构建：`pnpm tauri build`
-- Android 开发：需先执行 `pnpm tauri android init`，再使用 `pnpm tauri android dev`
+- **macOS 桌面**：在 Mac 上直接执行上述桌面命令即可；详见 [打包说明 - macOS](docs/build.md#macos桌面)。
+- **Android**：需先执行 `pnpm tauri android init`，再使用 `pnpm tauri android dev`；构建用 `pnpm tauri android build`。
+- **iOS**：需在 macOS 上安装完整 Xcode 与 CocoaPods，且 `xcode-select` 指向 Xcode；先执行 `pnpm tauri ios init`，再使用 `pnpm tauri ios dev`，构建用 `pnpm tauri ios build`。环境与常见问题见 [打包说明 - iOS](docs/build.md#ios)。
 
 ## 发布
 
@@ -24,13 +26,13 @@ pnpm release major    # major 版本（0.1.0 -> 1.0.0）
 - 如果当前版本的 tag 在远程不存在 → 使用当前版本发布（不升级版本）
 - 如果当前版本的 tag 在远程已存在 → 根据版本类型升级版本后再发布
 
-推送 tag 后，GitHub Actions 会自动构建 Windows exe 和 Android APK，并创建 Release。详见 [打包说明 - 发布与 Tag](docs/build.md#发布与-taggithub-可浏览下载)。
+推送 tag 后，GitHub Actions 会自动构建 Windows exe、macOS 应用（Apple Silicon）与 Android APK，并创建 Release；**不支持 iOS 构建**，iOS 需在本地 Mac 上自行构建。详见 [打包说明 - 发布与 Tag](docs/build.md#发布与-taggithub-可浏览下载)。
 
 ## 文档
 
-- [功能说明](docs/features.md)：列表层级、学习进度、筛选、链接、更新数据、多端布局与返回键
+- [功能说明](docs/features.md)：列表层级、学习进度、筛选、链接、更新数据、亮/暗主题与多端布局
 - [配置说明](docs/config.md)：学习程度、数据与存储、ism.json 更新方式
-- [各平台打包说明](docs/build.md)：Windows / Android / macOS / Linux 构建与发布、CHANGELOG 与 CI
+- [各平台打包说明](docs/build.md)：Windows / macOS 桌面 / Android / iOS / Linux 构建与发布、CHANGELOG 与 CI
 - [项目技术说明](docs/tech-overview.md)：各文件与目录作用，便于定位修改
 - 项目根目录 `CHANGELOG.md`：按版本维护更新说明，CI 创建 Release 时自动将当前版本段落写入 Release 正文；编写格式与示例见 [打包说明 - Release 正文与 Changelog](docs/build.md#release-正文与-changelog)
 
@@ -42,8 +44,16 @@ VS Code + Vue - Official + Tauri + rust-analyzer
 
 ### Android
 
-![image/Android.png](image/Android.png)
+![Android.png](image/Android.png)
+
+### iOS
+
+![iOS](image/iOS.png)
 
 ### Windows
 
-![image/Windows.png](image/Windows.png)
+![Windows](image/Windows.png)
+
+### Mac
+
+![Mac](image/Mac.png)

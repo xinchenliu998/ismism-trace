@@ -223,9 +223,9 @@ function expandToSelected() {
   flex-shrink: 0;
   padding: 0.35rem 0.6rem;
   font-size: 0.8rem;
-  color: var(--stats-color, #64748b);
-  background: var(--toolbar-bg, #f8f9fa);
-  border-bottom: 1px solid var(--border, #e8e8e8);
+  color: var(--text-muted);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
 }
 .stats-text {
   font-weight: 500;
@@ -236,8 +236,8 @@ function expandToSelected() {
   align-items: center;
   gap: 0.25rem;
   padding: 0.4rem 0.6rem;
-  background: var(--toolbar-bg, #f8f9fa);
-  border-bottom: 1px solid var(--border, #e8e8e8);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
 }
 .tab {
   flex: 1;
@@ -245,22 +245,22 @@ function expandToSelected() {
   padding: 0.35rem 0.5rem;
   font-size: 0.8rem;
   font-weight: 500;
-  border: 1px solid var(--border, #e2e8f0);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fff;
-  color: #64748b;
+  background: var(--bg-panel);
+  color: var(--text-muted);
   cursor: pointer;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
 .tab:hover {
-  background: #f1f5f9;
-  color: #334155;
+  background: var(--hover-bg);
+  color: var(--text-secondary);
 }
 .tab.active {
-  background: #3b82f6;
-  border-color: #3b82f6;
-  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
 }
 .toolbar {
   flex-shrink: 0;
@@ -268,8 +268,8 @@ function expandToSelected() {
   align-items: center;
   gap: 0.25rem;
   padding: 0.5rem 0.6rem;
-  border-bottom: 1px solid var(--border, #e8e8e8);
-  background: var(--toolbar-bg, #f8f9fa);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-panel);
 }
 .icon-btn {
   width: 2rem;
@@ -278,7 +278,7 @@ function expandToSelected() {
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: var(--icon-color, #555);
+  color: var(--icon-color);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -303,8 +303,8 @@ function expandToSelected() {
   transform: translateY(-0.15em);
 }
 .icon-btn:hover:not(:disabled) {
-  background: var(--icon-btn-hover-bg, rgba(0, 0, 0, 0.06));
-  color: var(--icon-color-hover, #1a1a1a);
+  background: var(--hover-bg);
+  color: var(--icon-hover);
 }
 .icon-btn:disabled {
   opacity: 0.4;
@@ -332,15 +332,18 @@ li {
   transition: background 0.12s;
   -webkit-tap-highlight-color: transparent;
 }
+li {
+  color: var(--text-secondary);
+}
 li:hover {
-  background: var(--item-hover-bg, #eef1f4);
+  background: var(--hover-bg);
 }
 li.unlearned .name {
-  color: var(--unlearned-color, #94a3b8);
+  color: var(--text-placeholder);
 }
 li.selected {
-  background: var(--item-selected-bg, #e3f2fd);
-  color: var(--item-selected-color, #1565c0);
+  background: var(--selected-bg);
+  color: var(--selected-color);
 }
 li.selected .id {
   color: inherit;
@@ -364,7 +367,7 @@ li.selected.unlearned .name {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--chevron-color, #666);
+  color: var(--icon-color);
   transition: color 0.12s, background 0.12s;
 }
 .toggle::before {
@@ -376,8 +379,8 @@ li.selected.unlearned .name {
   transform: rotate(90deg);
 }
 .toggle:hover {
-  background: rgba(0, 0, 0, 0.06);
-  color: var(--chevron-hover, #333);
+  background: var(--hover-bg);
+  color: var(--icon-hover);
 }
 .toggle-placeholder {
   visibility: hidden;
@@ -386,7 +389,7 @@ li.selected.unlearned .name {
   flex-shrink: 0;
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--id-color, #64748b);
+  color: var(--text-muted);
   min-width: 3.2rem;
 }
 .name {
@@ -406,29 +409,29 @@ li.selected.unlearned .name {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--level-0-bg, #e2e8f0);
-  color: var(--level-0-color, #475569);
+  background: var(--level-0-bg);
+  color: var(--level-0-color);
 }
 .level-badge.is-unlearned {
-  background: #cbd5e1;
-  color: #64748b;
+  background: var(--level-0-unlearned-bg);
+  color: var(--level-0-unlearned-color);
   font-size: 0.65rem;
 }
 .level-badge[data-level="1"] {
-  background: #fef3c7;
-  color: #b45309;
+  background: var(--level-1-bg);
+  color: var(--level-1-color);
 }
 .level-badge[data-level="2"] {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: var(--level-2-bg);
+  color: var(--level-2-color);
 }
 .level-badge[data-level="3"] {
-  background: #d1fae5;
-  color: #047857;
+  background: var(--level-3-bg);
+  color: var(--level-3-color);
 }
 .level-badge[data-level="4"] {
-  background: #ede9fe;
-  color: #6d28d9;
+  background: var(--level-4-bg);
+  color: var(--level-4-color);
 }
 
 /* 安卓/小屏：触摸目标至少 44px */

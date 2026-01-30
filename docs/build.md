@@ -59,14 +59,117 @@
 
 ---
 
-## macOS
+## macOS（桌面）
 
-**命令：** `pnpm tauri build`（在 macOS 上执行）
+**命令：** 在 macOS 上执行
+
+- 开发：`pnpm tauri dev`
+- 构建：`pnpm tauri build`
 
 | 产物 | 路径 |
 |------|------|
 | 应用包 (.app) | `src-tauri/target/release/bundle/macos/ismism-trace.app` |
-| DMG 安装镜像 | `src-tauri/target/release/bundle/dmg/ismism-trace_0.1.0_x64.dmg`（需 `bundle.targets` 包含对应类型） |
+| DMG 安装镜像 | `src-tauri/target/release/bundle/dmg/ismism-trace_0.1.0_x64.dmg`（需 `bundle.targets` 包含对应类型，如 `dmg`） |
+
+**架构：** 默认按当前机器架构（Apple Silicon 为 aarch64，Intel 为 x86_64）。需通用包时先安装双架构 target：`rustup target add aarch64-apple-darwin x86_64-apple-darwin`，再使用 `tauri build --target universal-apple-darwin`（见 Tauri 文档）。
+
+---
+
+## iOS
+
+**说明：** GitHub Actions CI **不包含** iOS 构建；iOS 需在本地 macOS 上自行执行 `pnpm tauri ios init`（仅一次）及 `pnpm tauri ios build`。签名与上架见下文。
+
+**前置条件：** 必须在 **macOS** 上构建，且满足以下环境：
+
+1. **完整 Xcode**（从 App Store 安装），而非仅“Command Line Tools”。`simctl` 等工具随 Xcode 提供。
+2. **活动开发者目录指向 Xcode**：若曾切换为 Command Line Tools，需改回：
+   ```bash
+   sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+   ```
+   否则会出现 `xcrun: unable to find utility "simctl"` 或 exit code 72。
+3. **CocoaPods**：iOS 工程依赖 CocoaPods。若未安装，可用：
+   ```bash
+   brew install --formula cocoapods
+   ```
+4. **首次构建前** 需初始化 iOS 工程（见下方）。
+
+**初始化（仅需一次）：**
+
+```bash
+pnpm tauri ios init
+```
+
+会在 `src-tauri/gen/apple/` 下生成 iOS 工程（Xcode 项目等）。
+
+**开发：**
+
+```bash
+pnpm tauri ios dev
+```
+
+默认会尝试连接设备，若无设备则提示选择模拟器。也可指定设备名，例如：
+
+```bash
+pnpm tauri ios dev 'iPhone 16e'
+```
+
+用 Xcode 打开工程而不直接跑机子：
+
+```bash
+pnpm tauri ios dev --open
+```
+
+在**真机**上开发时，开发服务器需监听局域网地址（供手机访问）。本项目的 `vite.config.ts` 已通过 `TAURI_DEV_HOST` 支持；首次运行可能弹出“发现并连接本地网络设备”权限，需允许。若用 Xcode 跑真机，可加 `--open --host`。
+
+**构建：**
+
+```bash
+pnpm tauri ios build
+```
+
+| 产物 | 说明 |
+|------|------|
+| IPA / 应用 | 位于 `src-tauri/gen/apple/build/` 下，具体路径以构建输出为准。可配合 `--export-method` 生成 App Store / TestFlight 包。 |
+
+**签名：** 真机运行或上架必须进行代码签名，且需加入 [Apple Developer Program](https://developer.apple.com)（当前约 99 美元/年）。Bundle ID（本应用为 `com.bottle.ismism-trace`）需在 [App Store Connect](https://appstoreconnect.apple.com) 或 [Identifiers](https://developer.apple.com/account/resources/identifiers/list) 中注册。
+
+**方式一：自动签名（推荐，本机开发/真机调试）**
+
+由 Xcode 管理证书与描述文件，最省事：
+
+1. 在 Mac 上打开 Xcode → **Xcode → Settings** → **Accounts**，点击 **+** 添加你的 Apple ID（已加入开发者计划则选该账号）。
+2. 用 Xcode 打开 iOS 工程：`pnpm tauri ios dev --open`，在左侧选中 **ismism-trace_iOS**  target → **Signing & Capabilities**，勾选 **Automatically manage signing**，在 **Team** 下拉框中选择你的开发团队。
+3. 若用命令行构建（如 `pnpm tauri ios build`）且希望指定团队而不再用 Xcode 选，可在 `tauri.conf.json` 的 `bundle` 下增加 `iOS` 配置，设置 `developmentTeam` 为你的 **Team ID**（10 位字符，在 [Apple Developer → Membership](https://developer.apple.com/account#MembershipDetailsCard) 或 Xcode Signing 里可见）；或设置环境变量 `APPLE_DEVELOPMENT_TEAM=<你的 Team ID>`。
+
+**方式二：手动签名（证书 + 描述文件）**
+
+适用于无 Xcode 图形界面或需固定证书的场景。在构建前设置环境变量：
+
+| 变量名 | 说明 |
+|--------|------|
+| `IOS_CERTIFICATE` | 从钥匙串导出的 .p12 证书的 **Base64** 字符串（`base64 -i 证书.p12 \| pbcopy`） |
+| `IOS_CERTIFICATE_PASSWORD` | 导出 .p12 时设置的密码 |
+| `IOS_MOBILE_PROVISION` | 描述文件 .mobileprovision 的 **Base64** 字符串（`base64 -i xxx.mobileprovision \| pbcopy`） |
+
+证书类型需与导出方式对应：真机调试用 **Apple Development**；上架 / Ad Hoc 用 **Apple Distribution**。描述文件在 [Profiles](https://developer.apple.com/account/resources/profiles/list) 创建，Bundle ID 需与 `tauri.conf.json` 的 `identifier` 一致。
+
+**方式三：CI / 自动构建**
+
+在 CI 中使用自动签名时，需使用 App Store Connect API Key，并设置：
+
+| 变量名 | 说明 |
+|--------|------|
+| `APPLE_API_ISSUER` | App Store Connect → Users and Access → Integrations → 创建 API Key 后页面上方的 **Issuer ID** |
+| `APPLE_API_KEY` | 该 API Key 的 **Key ID** |
+| `APPLE_API_KEY_PATH` | 下载的 .p8 私钥文件的路径（创建 Key 后仅可下载一次） |
+
+更多细节与证书/描述文件导出步骤见 [Tauri 官方：iOS Code Signing](https://v2.tauri.app/distribute/sign/ios)。
+
+**常见问题：**
+
+- **Failed to detect connected iOS Simulator / exit code 72**：多为 `xcode-select` 指向 Command Line Tools。执行 `sudo xcode-select -s /Applications/Xcode.app/Contents/Developer`。
+- **No code signing certificates found**：仅模拟器可先忽略；真机或上架需在 Xcode 中配置开发团队，或在 `tauri.conf.json` 的 `bundle > iOS > developmentTeam` 或环境变量 `APPLE_DEVELOPMENT_TEAM` 中设置。
+- **pod install 失败 / cocoapods not found**：安装 CocoaPods，例如 `brew install --formula cocoapods`。
 
 ---
 
@@ -84,6 +187,8 @@
 ---
 
 ## 发布与 Tag（GitHub 可浏览/下载）
+
+**CI 构建范围：** 推送 tag 后，GitHub Actions 会自动构建 **Windows exe**、**macOS 应用**（Apple Silicon，产出 `*-macos-aarch64.zip`）与 **Android APK**，并创建 Release 附带上述产物。**不支持 iOS 构建**；iOS 需在本地 macOS 上执行 `pnpm tauri ios build` 自行构建与签名。
 
 版本号以 `package.json` / `tauri.conf.json` 的 `version` 为准。
 
@@ -129,10 +234,15 @@ pnpm release major    # major 版本（0.1.0 -> 1.0.0）
 - 如果发布过程中任何步骤失败，脚本会自动回滚所有更改（删除 tag、回滚提交、恢复版本号）
 - 如果 tag 已存在于远程，会提示错误并退出
 
-推送 tag 后，GitHub Actions 会自动构建 Windows exe 和 Android APK，并创建 Release。在 **Actions** 页查看构建进度，完成后在 **Releases** 页即可下载。
+推送 tag 后，GitHub Actions 会自动构建 Windows exe、macOS 应用（aarch64 zip）和 Android APK，并创建 Release。在 **Actions** 页查看构建进度，完成后在 **Releases** 页即可下载。iOS 不在 CI 中构建，需在本地 Mac 上自行构建。
+
+**只想重新跑一次构建、不打新 tag 时：**
+
+1. **Re-run**：在 **Actions** 页找到该 tag 对应的那次运行，点进该 run，右上角 **Re-run all jobs**，会用同一 tag 重新构建并覆盖同一次 Release 的产物。
+2. **手动触发**：在 **Actions** 页选择 **Release** workflow，点击 **Run workflow**，在 **要重新构建的 tag** 输入框填写 tag（如 `v0.1.0`），运行后会 checkout 该 tag 并重新构建、更新该 tag 的 Release。
 
 **Release 正文与 Changelog：**  
-CI 创建 Release 时，会从项目根目录的 `CHANGELOG.md` 中提取**当前版本**对应的段落（以 `## [x.y.z]` 开头的区块，到下一个 `##` 或文件末尾为止）写入 Release 正文，再追加 Android 包说明。版本号需与 tag 一致（如 tag `v0.1.1` 对应 `## [0.1.1]`）。
+CI 创建 Release 时，会从项目根目录的 `CHANGELOG.md` 中提取**当前版本**对应的段落（以 `## [x.y.z]` 开头的区块，到下一个 `##` 或文件末尾为止）写入 Release 正文，再追加 Android、macOS 包说明。版本号需与 tag 一致（如 tag `v0.1.1` 对应 `## [0.1.1]`）。
 
 **Changelog 编写示例：**
 

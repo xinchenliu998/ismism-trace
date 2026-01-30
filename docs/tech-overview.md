@@ -28,8 +28,9 @@
 
 | 文件 / 目录 | 作用 |
 |-------------|------|
-| `main.ts` | Vue 应用入口：`createApp(App).mount("#app")`。 |
-| `App.vue` | 根组件：顶栏（标题、搜索、返回按钮、更新数据图标）、侧栏列表、详情区；负责 `selectedId`、`items`、`progress` 等状态，以及 Android 返回键/全面屏手势（`onBackKeyDown`）、更新数据流程（选文件 → 校验 → 确认 → 刷新）。 |
+| `main.ts` | Vue 应用入口：挂载 App，并引入 `styles/theme.css`。 |
+| `styles/theme.css` | 亮/暗主题 CSS 变量：默认根据 `prefers-color-scheme` 定义 `--bg-page`、`--text-primary`、`--accent` 等；支持通过 `html` 的 `data-theme="light"` / `data-theme="dark"` 覆盖（由顶栏主题按钮设置），供各组件统一引用。 |
+| `App.vue` | 根组件：顶栏（标题、搜索、**主题切换按钮**、返回按钮、更新数据图标）、侧栏列表、详情区；负责主题状态与 `localStorage` 持久化、`selectedId`、`items`、`progress` 等，以及 Android 返回键/全面屏手势（`onBackKeyDown`）、更新数据流程（选文件 → 校验 → 确认 → 刷新）。 |
 | `api.ts` | 封装 Tauri `invoke`：`get_ism_list`、`get_ism_detail`、`get_progress`、`set_progress`、`read_ism_file`、`validate_ism_content`、`apply_ism_content`。 |
 | `types.ts` | 前端类型：`IsmItem`、`IsmTreeNode`、`IsmEntry`、`ProgressEntry`、`ProgressMap`、`IsmUpdatePreview`。 |
 | `vite-env.d.ts` | Vite 环境类型声明。 |
@@ -88,7 +89,7 @@
 
 | 文件 | 作用 |
 |------|------|
-| `release.yml` | 推送 `v*` tag 时：并行构建 Windows exe 与 Android APK（含签名配置）、下载产物、从 `CHANGELOG.md` 提取当前版本段落生成 Release 正文、创建 GitHub Release 并上传 exe/apk。 |
+| `release.yml` | 推送 `v*` tag 时：并行构建 Windows exe、macOS 应用（aarch64 zip）与 Android APK（含签名配置）；**不构建 iOS**；下载产物、从 `CHANGELOG.md` 提取当前版本段落生成 Release 正文、创建 GitHub Release 并上传 exe/macos zip/apk。 |
 
 ---
 
@@ -98,7 +99,7 @@
 |------|------|
 | `build.md` | 各平台构建命令与产物路径、一键发布与手动发布、CHANGELOG 编写示例、CI 签名配置。 |
 | `config.md` | 学习程度配置、数据与存储、ism.json 更新方式、构建与安装包相关配置。 |
-| `features.md` | 功能说明：列表与目录、学习进度、更新主义数据、详情与链接、多端与返回键。 |
+| `features.md` | 功能说明：列表与目录、学习进度、更新主义数据、详情与链接、亮/暗主题与多端布局。 |
 | `icon.md` | 应用图标：从源图生成、`icon:prepare` / `icon:gen` 用法。 |
 | `数据来源.md` | 主义数据来源引用（如 B 站、GitHub 仓库）。 |
 | `tech-overview.md` | 本技术说明：各文件与目录作用。 |

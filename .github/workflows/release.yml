@@ -1,19 +1,31 @@
-# 推送 tag（如 v0.1.0）时自动构建 Windows exe 与 Android APK，并创建 GitHub Release 附带两者
+# 推送 tag（如 v0.1.0）时自动构建；也可在 Actions 页手动触发并指定 tag 以重新构建该版本（无需打新 tag）
 name: Release
 
 on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "要重新构建的 tag（如 v0.1.0）"
+        required: true
+        type: string
 
 permissions:
   contents: write
+
+# 推送 tag 时用当前 ref；手动触发时用输入的 tag
+env:
+  BUILD_REF: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref }}
 
 jobs:
   build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BUILD_REF }}
 
       - uses: pnpm/action-setup@v4
         with:
@@ -56,6 +68,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BUILD_REF }}
 
       - uses: pnpm/action-setup@v4
         with:
@@ -130,11 +144,58 @@ jobs:
           path: release-artifact/
           if-no-files-found: error
 
-  release:
-    runs-on: ubuntu-latest
-    needs: [build-windows, build-android]
+  build-macos:
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BUILD_REF }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "pnpm"
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "src-tauri -> target"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build macOS
+        run: pnpm tauri build
+
+      - name: Upload macOS app
+        run: |
+          mkdir -p release-artifact
+          APP_DIR="src-tauri/target/release/bundle/macos"
+          if [ -d "$APP_DIR/ismism-trace.app" ]; then
+            cd "$APP_DIR" && zip -r -y "$GITHUB_WORKSPACE/release-artifact/ismism-trace-macos.zip" ismism-trace.app && cd "$GITHUB_WORKSPACE"
+          fi
+
+      - name: Upload macos artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: release-artifact/
+          if-no-files-found: error
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build-windows, build-android, build-macos]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BUILD_REF }}
 
       - uses: actions/setup-node@v4
         with:
@@ -156,6 +217,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: apk
+
+      - name: Download macos
+        uses: actions/download-artifact@v4
+        with:
+          name: macos
 
       - name: Rename and collect assets
         run: |
@@ -207,6 +273,12 @@ jobs:
               fi
             done
           fi
+          
+          # macOS：artifact 下载到 macos/ 目录，重命名为带版本与架构的 zip（runner 为 Apple Silicon，故 aarch64）
+          MZ=""
+          [ -f "macos/ismism-trace-macos.zip" ] && MZ="macos/ismism-trace-macos.zip"
+          [ -z "$MZ" ] && [ -d "macos" ] && MZ=$(find macos -name "*.zip" -type f 2>/dev/null | head -1)
+          [ -n "$MZ" ] && cp "$MZ" "release/${NAME}-${VER}-macos-aarch64.zip"
 
       - name: Generate release body
         env:
@@ -224,14 +296,18 @@ jobs:
           elif [ -f "release/ismism-trace-${VER}-android-universal-unsigned.apk" ]; then
             echo "> Android：CI 未配置签名时仅提供 \`*-android-universal-unsigned.apk\`；本机配置 keystore 后构建可得已签名包。" >> release_body.md
           fi
+          echo "" >> release_body.md
+          if [ -f "release/ismism-trace-${VER}-macos-aarch64.zip" ]; then
+            echo "> macOS：提供 \`*-macos-aarch64.zip\`（Apple Silicon），解压后为 \`.app\`，未签名；需在本机打开或自行签名。" >> release_body.md
+          fi
 
       - name: Prepare release files list
         id: files
         run: |
-          TAG="${{ github.ref_name }}"
-          VER="${TAG#v}"
+          VER="${{ steps.version.outputs.version }}"
           FILES=""
           [ -f "release/ismism-trace-${VER}-win-x64.exe" ] && FILES="${FILES}release/ismism-trace-${VER}-win-x64.exe"$'\n'
+          [ -f "release/ismism-trace-${VER}-macos-aarch64.zip" ] && FILES="${FILES}release/ismism-trace-${VER}-macos-aarch64.zip"$'\n'
           [ -f "release/ismism-trace-${VER}-android-universal.apk" ] && FILES="${FILES}release/ismism-trace-${VER}-android-universal.apk"$'\n'
           [ -f "release/ismism-trace-${VER}-android-universal-unsigned.apk" ] && FILES="${FILES}release/ismism-trace-${VER}-android-universal-unsigned.apk"$'\n'
           echo "files<<EOF" >> $GITHUB_OUTPUT
@@ -241,8 +317,8 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: ${{ steps.version.outputs.tag }}
           body_path: release_body.md
           files: ${{ steps.files.outputs.files }}
           overwrite_files: true

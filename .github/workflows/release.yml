@@ -255,14 +255,18 @@ jobs:
             done
           fi
           
-          # macOS：优先 DMG，其次 zip；用 if/fi 避免 set -e 在文件不存在时退出
-          if [ -f "macos/ismism-trace-macos.dmg" ]; then
-            cp "macos/ismism-trace-macos.dmg" "release/${NAME}-${VER}-macos-aarch64.dmg"
-          elif [ -f "macos/ismism-trace-macos.zip" ]; then
-            cp "macos/ismism-trace-macos.zip" "release/${NAME}-${VER}-macos-aarch64.zip"
-          elif [ -d "macos" ]; then
-            MZ=$(find macos \( -name "*.dmg" -o -name "*.zip" \) -type f 2>/dev/null | head -1)
-            if [ -n "$MZ" ]; then ext="${MZ##*.}"; cp "$MZ" "release/${NAME}-${VER}-macos-aarch64.${ext}"; fi
+          # macOS：download-artifact 单次下载时可能解压到当前目录或 macos/ 子目录，两处都查
+          MACOS_DMG=""
+          MACOS_ZIP=""
+          if [ -f "ismism-trace-macos.dmg" ]; then MACOS_DMG="ismism-trace-macos.dmg"; elif [ -f "macos/ismism-trace-macos.dmg" ]; then MACOS_DMG="macos/ismism-trace-macos.dmg"; fi
+          if [ -f "ismism-trace-macos.zip" ]; then MACOS_ZIP="ismism-trace-macos.zip"; elif [ -f "macos/ismism-trace-macos.zip" ]; then MACOS_ZIP="macos/ismism-trace-macos.zip"; fi
+          if [ -n "$MACOS_DMG" ]; then
+            cp "$MACOS_DMG" "release/${NAME}-${VER}-macos-aarch64.dmg"
+          elif [ -n "$MACOS_ZIP" ]; then
+            cp "$MACOS_ZIP" "release/${NAME}-${VER}-macos-aarch64.zip"
+          else
+            MZ=$(find . -type f \( -name "ismism-trace-macos.dmg" -o -name "ismism-trace-macos.zip" \) 2>/dev/null | grep -v node_modules | head -1)
+            if [ -n "$MZ" ] && [ -f "$MZ" ]; then ext="${MZ##*.}"; cp "$MZ" "release/${NAME}-${VER}-macos-aarch64.${ext}"; fi
           fi
           set -e
 

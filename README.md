@@ -26,12 +26,14 @@ pnpm release major    # major 版本（0.1.0 -> 1.0.0）
 - 如果当前版本的 tag 在远程不存在 → 使用当前版本发布（不升级版本）
 - 如果当前版本的 tag 在远程已存在 → 根据版本类型升级版本后再发布
 
+发布时版本会同步到各平台包信息（tauri.conf.json、Cargo.toml、iOS 等），保证安装包内显示的版本一致。
+
 推送 tag 后，GitHub Actions 会自动构建 Windows exe、macOS 应用（Apple Silicon）、Linux（x86_64 AppImage/deb）与 Android APK，并创建 Release；**不支持 iOS 构建**，iOS 需在本地 Mac 上自行构建。详见 [打包说明 - 发布与 Tag](docs/build.md#发布与-taggithub-可浏览下载)。
 
 ## 文档
 
 - [功能说明](docs/features.md)：列表层级、学习进度、筛选、链接、更新数据、亮/暗主题与多端布局
-- [配置说明](docs/config.md)：学习程度、数据与存储、ism.json 更新方式
+- [配置说明](docs/config.md)：学习程度、数据与存储、ism.json 更新方式、版本号与构建
 - [各平台打包说明](docs/build.md)：Windows / macOS 桌面 / Android / iOS / Linux 构建与发布、CHANGELOG 与 CI
 - [项目技术说明](docs/tech-overview.md)：各文件与目录作用，便于定位修改
 - 项目根目录 `CHANGELOG.md`：按版本维护更新说明，CI 创建 Release 时自动将当前版本段落写入 Release 正文；编写格式与示例见 [打包说明 - Release 正文与 Changelog](docs/build.md#release-正文与-changelog)

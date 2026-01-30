@@ -250,7 +250,7 @@ pnpm tauri ios build
 
 **CI 构建范围：** 推送 tag 后，GitHub Actions 会自动构建 **Windows exe**、**macOS 应用**（Apple Silicon，产出 `*-macos-aarch64.zip`）、**Linux**（x86_64，产出 `*-linux-x64.AppImage` / `*-linux-x64.deb`）与 **Android APK**，并创建 Release 附带上述产物。**不支持 iOS 构建**；iOS 需在本地 macOS 上执行 `pnpm tauri ios build` 自行构建与签名。
 
-版本号以 `package.json` / `tauri.conf.json` 的 `version` 为准。
+版本号以 `package.json` 为准；发布脚本会在 bump 时同步到 `src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml` 以及 iOS 的 `gen/apple/project.yml`、`gen/apple/ismism-trace_iOS/Info.plist`，保证各平台包内显示的版本一致。Android 的 versionName/versionCode 由 Tauri 构建时根据 `tauri.conf.json` 的 version 生成。
 
 ### 一键发布（推荐）
 
@@ -279,8 +279,8 @@ pnpm release major    # major 版本（0.1.0 -> 1.0.0）
 
 1. 检查当前版本的 tag 是否已存在于远程
 2. 根据检查结果决定使用当前版本或升级版本
-3. 如需升级版本，更新 `package.json` 中的版本号
-4. 如需升级版本，提交更改（commit message: `chore: bump version to x.x.x`）
+3. 如需升级版本，更新 `package.json` 中的版本号，并同步到 `src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`、`src-tauri/gen/apple/project.yml`、`src-tauri/gen/apple/ismism-trace_iOS/Info.plist`（保证 Android/iOS/桌面包内显示版本一致）
+4. 如需升级版本，提交上述文件的更改（commit message: `chore: bump version to x.x.x`）
 5. 创建带注释的 tag（格式：`vx.x.x`）
 6. 推送代码和 tag 到远程仓库
 7. 触发 GitHub Actions 自动构建和创建 Release
@@ -345,7 +345,9 @@ CI 创建 Release 时，会从项目根目录的 `CHANGELOG.md` 中提取**当�
 **1. 更新版本号并打 tag**
 
 ```bash
-# 手动更新 package.json 中的 version
+# 手动更新 package.json 中的 version，并同步到 src-tauri/tauri.conf.json、src-tauri/Cargo.toml、
+# src-tauri/gen/apple/project.yml（CFBundleShortVersionString、CFBundleVersion）、
+# src-tauri/gen/apple/ismism-trace_iOS/Info.plist，否则各平台包内显示的版本会不一致
 # 然后创建并推送 tag
 git tag -a v0.1.0 -m "Release v0.1.0"
 git push origin v0.1.0

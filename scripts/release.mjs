@@ -18,6 +18,39 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const rootDir = join(__dirname, '..');
 
+const tauriDir = join(rootDir, 'src-tauri');
+const tauriConfPath = join(tauriDir, 'tauri.conf.json');
+const cargoTomlPath = join(tauriDir, 'Cargo.toml');
+const appleProjectYmlPath = join(tauriDir, 'gen/apple/project.yml');
+const appleInfoPlistPath = join(tauriDir, 'gen/apple/ismism-trace_iOS/Info.plist');
+
+/** 将版本号同步到 tauri.conf.json、Cargo.toml、iOS project.yml 与 Info.plist（与 package.json 一致） */
+function syncVersionToTauri(version) {
+  const conf = JSON.parse(readFileSync(tauriConfPath, 'utf-8'));
+  conf.version = version;
+  writeFileSync(tauriConfPath, JSON.stringify(conf, null, 2) + '\n');
+
+  let cargo = readFileSync(cargoTomlPath, 'utf-8');
+  cargo = cargo.replace(/^version = "[^"]+"$/m, `version = "${version}"`);
+  writeFileSync(cargoTomlPath, cargo);
+
+  let yml = readFileSync(appleProjectYmlPath, 'utf-8');
+  yml = yml.replace(/CFBundleShortVersionString: .+/g, `CFBundleShortVersionString: ${version}`);
+  yml = yml.replace(/CFBundleVersion: "[^"]+"/g, `CFBundleVersion: "${version}"`);
+  writeFileSync(appleProjectYmlPath, yml);
+
+  let plist = readFileSync(appleInfoPlistPath, 'utf-8');
+  plist = plist.replace(
+    /(<key>CFBundleShortVersionString<\/key>\s*<string>)[^<]+(<\/string>)/,
+    `$1${version}$2`
+  );
+  plist = plist.replace(
+    /(<key>CFBundleVersion<\/key>\s*<string>)[^<]+(<\/string>)/,
+    `$1${version}$2`
+  );
+  writeFileSync(appleInfoPlistPath, plist);
+}
+
 // 读取 package.json
 const packageJsonPath = join(rootDir, 'package.json');
 const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
@@ -116,11 +149,12 @@ try {
     // 可能是新仓库，没有 commit
   }
 
-  // 1. 更新 package.json（如果需要升级版本）
+  // 1. 更新 package.json 及 Tauri/iOS 包信息（如果需要升级版本）
   if (currentTagIsRemote) {
-    console.log('1. 更新 package.json...');
+    console.log('1. 更新 package.json 与 Tauri 包信息...');
     packageJson.version = releaseVersion;
     writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+    syncVersionToTauri(releaseVersion);
     console.log(`   ✓ 版本已更新为 ${releaseVersion}`);
   } else {
     console.log('1. 检查 package.json...');
@@ -130,7 +164,10 @@ try {
   // 2. 提交更改（如果需要升级版本）
   if (currentTagIsRemote) {
     console.log('2. 提交更改...');
-    execSync('git add package.json', { cwd: rootDir, stdio: 'inherit' });
+    execSync(
+      'git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/gen/apple/project.yml src-tauri/gen/apple/ismism-trace_iOS/Info.plist',
+      { cwd: rootDir, stdio: 'inherit' }
+    );
     execSync(`git commit -m "chore: bump version to ${releaseVersion}"`, { 
       cwd: rootDir, 
       stdio: 'inherit' 
@@ -250,15 +287,16 @@ try {
         });
         console.log('   ✓ 已回滚提交');
         
-        // 恢复 package.json 版本（如果之前升级了版本）
+        // 恢复 package.json 与 Tauri 包信息版本（如果之前升级了版本）
         if (currentTagIsRemote) {
           packageJson.version = currentVersion;
           writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
-          console.log(`   ✓ 已恢复 package.json 版本为 ${currentVersion}`);
+          syncVersionToTauri(currentVersion);
+          console.log(`   ✓ 已恢复 package.json 与 Tauri 包信息版本为 ${currentVersion}`);
         }
         
         // 取消暂存
-        execSync('git reset HEAD package.json', { 
+        execSync('git reset HEAD package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/gen/apple/project.yml src-tauri/gen/apple/ismism-trace_iOS/Info.plist', { 
           cwd: rootDir, 
           stdio: 'pipe' 
         });
@@ -274,21 +312,23 @@ try {
         });
         console.log('   ✓ 已回滚提交');
         
-        // 恢复 package.json 版本（如果之前升级了版本）
+        // 恢复 package.json 与 Tauri 包信息版本（如果之前升级了版本）
         if (currentTagIsRemote) {
           packageJson.version = currentVersion;
           writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
-          console.log(`   ✓ 已恢复 package.json 版本为 ${currentVersion}`);
+          syncVersionToTauri(currentVersion);
+          console.log(`   ✓ 已恢复 package.json 与 Tauri 包信息版本为 ${currentVersion}`);
         }
       } catch (e) {
         console.error('   ⚠️  回滚提交失败，请手动检查:', e.message);
       }
     } else {
-      // 只更新了 package.json，恢复版本（如果之前升级了版本）
+      // 只更新了 package.json 与 Tauri 包信息，恢复版本（如果之前升级了版本）
       if (currentTagIsRemote) {
         packageJson.version = currentVersion;
         writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
-        console.log(`   ✓ 已恢复 package.json 版本为 ${currentVersion}`);
+        syncVersionToTauri(currentVersion);
+        console.log(`   ✓ 已恢复 package.json 与 Tauri 包信息版本为 ${currentVersion}`);
       }
     }
     
@@ -297,7 +337,7 @@ try {
   } catch (rollbackError) {
     console.error('   ❌ 回滚失败:', rollbackError.message);
     console.error('   请手动检查并修复：');
-    console.error(`   - 检查 package.json 版本是否为 ${currentVersion}`);
+    console.error(`   - 检查 package.json、tauri.conf.json、Cargo.toml、gen/apple 内版本是否为 ${currentVersion}`);
     console.error(`   - 检查是否有未提交的更改`);
     if (tagCreated) {
       console.error(`   - 检查 tag ${tagName} 是否已删除`);

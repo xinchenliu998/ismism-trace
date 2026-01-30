@@ -73,6 +73,53 @@
 
 **架构：** 默认按当前机器架构（Apple Silicon 为 aarch64，Intel 为 x86_64）。需通用包时先安装双架构 target：`rustup target add aarch64-apple-darwin x86_64-apple-darwin`，再使用 `tauri build --target universal-apple-darwin`（见 Tauri 文档）。
 
+**CI 产物：** GitHub Actions 构建时使用 `tauri build --bundles dmg`，产出 **DMG**（`*-macos-aarch64.dmg`），便于分发与安装；若未生成 dmg 则回退为 .app 的 zip。
+
+### macOS「已损坏」提示
+
+从网络下载的**未签名**应用会被 macOS 标记为隔离属性，首次打开可能提示「xxx 已损坏，无法打开」。可任选其一：
+
+1. **移除隔离属性**（推荐，无需签名）：在终端执行（路径按实际安装位置）：
+   ```bash
+   xattr -cr /Applications/ismism-trace.app
+   ```
+   若从 DMG 拖到 Applications 后提示损坏，执行上述命令后再打开即可。
+
+2. **本机构建并签名**：在 Mac 上配置代码签名后执行 `pnpm tauri build --bundles dmg`，产出的 DMG/.app 签名后分发，则不会出现此提示。签名步骤见下文。
+
+### macOS 签名
+
+**前置：** 需 [Apple Developer](https://developer.apple.com) 账号（付费约 99 美元/年可上架与公证；免费账号仅可本地签名，无法公证，打开时仍可能提示「未验证开发者」）。
+
+**证书类型：**
+
+- **Developer ID Application**：在 App Store 外分发（本应用 DMG 即属此类），签名后建议配合公证（Notarization），用户打开时不再提示损坏。
+- **Apple Distribution**：用于提交 Mac App Store。
+
+**本机签名（推荐先在本机打通）：**
+
+1. 在 Mac 上生成 CSR：钥匙串访问 → 证书助理 → 从证书颁发机构请求证书；保存 `.certSigningRequest`。
+2. 登录 [Certificates, IDs & Profiles](https://developer.apple.com/account/resources/certificates/list) → **Create a certificate** → 选择 **Developer ID Application**，上传 CSR，下载 `.cer` 并双击安装到钥匙串。
+3. 查看签名身份（名称会出现在 Tauri 配置中）：
+   ```bash
+   security find-identity -v -p codesigning
+   ```
+4. 二选一配置 Tauri：
+   - 在 `tauri.conf.json` 的 `bundle` 下增加 `macOS`，设置 `signingIdentity` 为上述输出中带引号的完整名称（如 `"Developer ID Application: Your Name (TEAM_ID)"`）；
+   - 或构建前设置环境变量：`export APPLE_SIGNING_IDENTITY="Developer ID Application: ..."`
+5. 构建：`pnpm tauri build --bundles dmg`，产物即已签名。
+
+**公证（Notarization，可选但推荐）：**  
+使用 Developer ID 签名的应用建议提交 Apple 公证，用户打开时不再被 Gatekeeper 拦截。需在构建环境提供 Apple 认证方式之一：
+
+- **Apple ID**：设置环境变量 `APPLE_ID`、`APPLE_PASSWORD`（[应用专用密码](https://support.apple.com/zh-cn/HT204397)）、`APPLE_TEAM_ID`，Tauri 构建时会自动请求公证。
+- **App Store Connect API Key**：设置 `APPLE_API_ISSUER`、`APPLE_API_KEY`、`APPLE_API_KEY_PATH`（.p8 私钥路径），适合 CI。
+
+**CI 中签名：**  
+在 GitHub Actions 等 CI 中需将证书导出为 .p12，用 Base64 存入 Secret（如 `APPLE_CERTIFICATE`），并设置 `APPLE_CERTIFICATE_PASSWORD`；在 job 中创建临时钥匙串、导入证书、设置 `APPLE_SIGNING_IDENTITY` 后再执行 `pnpm tauri build --bundles dmg`。完整步骤与示例见 [Tauri 官方：macOS Code Signing](https://v2.tauri.app/distribute/sign/macos)。
+
+**临时/仅本机：** 若仅在本机运行、不对外分发，可在配置中设置 `signingIdentity: "-"` 启用 ad-hoc 签名（不依赖 Apple 证书），但无法通过公证，其他用户下载后仍可能被系统拦截。
+
 ---
 
 ## iOS

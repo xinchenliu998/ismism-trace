@@ -171,15 +171,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build macOS
-        run: pnpm tauri build
+      - name: Build macOS (DMG)
+        run: pnpm tauri build --bundles dmg
 
-      - name: Upload macOS app
+      - name: Upload macOS DMG
         run: |
           mkdir -p release-artifact
-          APP_DIR="src-tauri/target/release/bundle/macos"
-          if [ -d "$APP_DIR/ismism-trace.app" ]; then
-            cd "$APP_DIR" && zip -r -y "$GITHUB_WORKSPACE/release-artifact/ismism-trace-macos.zip" ismism-trace.app && cd "$GITHUB_WORKSPACE"
+          DMG_DIR="src-tauri/target/release/bundle/dmg"
+          DMG_FILE=$(find "$DMG_DIR" -maxdepth 1 -name "*.dmg" -type f 2>/dev/null | head -1)
+          if [ -n "$DMG_FILE" ]; then
+            cp "$DMG_FILE" "$GITHUB_WORKSPACE/release-artifact/ismism-trace-macos.dmg"
+          else
+            APP_DIR="src-tauri/target/release/bundle/macos"
+            [ -d "$APP_DIR/ismism-trace.app" ] && ( cd "$APP_DIR" && zip -r -y "$GITHUB_WORKSPACE/release-artifact/ismism-trace-macos.zip" ismism-trace.app )
           fi
 
       - name: Upload macos artifact
@@ -224,61 +228,43 @@ jobs:
           name: macos
 
       - name: Rename and collect assets
+        env:
+          VER: ${{ steps.version.outputs.version }}
         run: |
-          TAG="${{ github.ref_name }}"
-          VER="${TAG#v}"
+          set +e
           NAME="ismism-trace"
           mkdir -p release
           
-          # 查找并复制 exe 文件
+          # exe
           EXE=""
-          if [ -f "ismism-trace.exe" ]; then
-            EXE="ismism-trace.exe"
-          elif [ -f "ismism_trace.exe" ]; then
-            EXE="ismism_trace.exe"
-          elif [ -d "exe/release-artifact" ]; then
-            EXE=$(find exe/release-artifact -name "*.exe" -type f 2>/dev/null | head -1)
-          elif [ -d "exe" ]; then
-            EXE=$(find exe -name "*.exe" -type f 2>/dev/null | head -1)
-          else
-            EXE=$(find . -name "*.exe" -type f 2>/dev/null | grep -v node_modules | head -1)
-          fi
-          [ -n "$EXE" ] && [ -f "$EXE" ] && cp "$EXE" "release/${NAME}-${VER}-win-x64.exe"
+          if [ -f "ismism-trace.exe" ]; then EXE="ismism-trace.exe"; fi
+          if [ -z "$EXE" ] && [ -f "ismism_trace.exe" ]; then EXE="ismism_trace.exe"; fi
+          if [ -z "$EXE" ] && [ -d "exe" ]; then EXE=$(find exe -name "*.exe" -type f 2>/dev/null | head -1); fi
+          if [ -z "$EXE" ]; then EXE=$(find . -name "*.exe" -type f 2>/dev/null | grep -v node_modules | head -1); fi
+          if [ -n "$EXE" ] && [ -f "$EXE" ]; then cp "$EXE" "release/${NAME}-${VER}-win-x64.exe"; fi
           
-          # 查找并复制 apk 文件
+          # apk
           APK_COUNT=0
           for f in $(find . -maxdepth 1 -name "*.apk" -type f 2>/dev/null); do
             APK_COUNT=$((APK_COUNT + 1))
-            if echo "$f" | grep -qi unsigned; then
-              cp "$f" "release/${NAME}-${VER}-android-universal-unsigned.apk"
-            else
-              cp "$f" "release/${NAME}-${VER}-android-universal.apk"
-            fi
+            if echo "$f" | grep -qi unsigned; then cp "$f" "release/${NAME}-${VER}-android-universal-unsigned.apk"; else cp "$f" "release/${NAME}-${VER}-android-universal.apk"; fi
           done
-          if [ $APK_COUNT -eq 0 ] && [ -d "apk/release-artifact" ]; then
-            for f in $(find apk/release-artifact -name "*.apk" -type f 2>/dev/null); do
-              if echo "$f" | grep -qi unsigned; then
-                cp "$f" "release/${NAME}-${VER}-android-universal-unsigned.apk"
-              else
-                cp "$f" "release/${NAME}-${VER}-android-universal.apk"
-              fi
-            done
-          fi
           if [ $APK_COUNT -eq 0 ] && [ -d "apk" ]; then
             for f in $(find apk -name "*.apk" -type f 2>/dev/null); do
-              if echo "$f" | grep -qi unsigned; then
-                cp "$f" "release/${NAME}-${VER}-android-universal-unsigned.apk"
-              else
-                cp "$f" "release/${NAME}-${VER}-android-universal.apk"
-              fi
+              if echo "$f" | grep -qi unsigned; then cp "$f" "release/${NAME}-${VER}-android-universal-unsigned.apk"; else cp "$f" "release/${NAME}-${VER}-android-universal.apk"; fi
             done
           fi
           
-          # macOS：artifact 下载到 macos/ 目录，重命名为带版本与架构的 zip（runner 为 Apple Silicon，故 aarch64）
-          MZ=""
-          [ -f "macos/ismism-trace-macos.zip" ] && MZ="macos/ismism-trace-macos.zip"
-          [ -z "$MZ" ] && [ -d "macos" ] && MZ=$(find macos -name "*.zip" -type f 2>/dev/null | head -1)
-          [ -n "$MZ" ] && cp "$MZ" "release/${NAME}-${VER}-macos-aarch64.zip"
+          # macOS：优先 DMG，其次 zip；用 if/fi 避免 set -e 在文件不存在时退出
+          if [ -f "macos/ismism-trace-macos.dmg" ]; then
+            cp "macos/ismism-trace-macos.dmg" "release/${NAME}-${VER}-macos-aarch64.dmg"
+          elif [ -f "macos/ismism-trace-macos.zip" ]; then
+            cp "macos/ismism-trace-macos.zip" "release/${NAME}-${VER}-macos-aarch64.zip"
+          elif [ -d "macos" ]; then
+            MZ=$(find macos \( -name "*.dmg" -o -name "*.zip" \) -type f 2>/dev/null | head -1)
+            if [ -n "$MZ" ]; then ext="${MZ##*.}"; cp "$MZ" "release/${NAME}-${VER}-macos-aarch64.${ext}"; fi
+          fi
+          set -e
 
       - name: Generate release body
         env:
@@ -297,16 +283,20 @@ jobs:
             echo "> Android：CI 未配置签名时仅提供 \`*-android-universal-unsigned.apk\`；本机配置 keystore 后构建可得已签名包。" >> release_body.md
           fi
           echo "" >> release_body.md
-          if [ -f "release/ismism-trace-${VER}-macos-aarch64.zip" ]; then
-            echo "> macOS：提供 \`*-macos-aarch64.zip\`（Apple Silicon），解压后为 \`.app\`，未签名；需在本机打开或自行签名。" >> release_body.md
+          if [ -f "release/ismism-trace-${VER}-macos-aarch64.dmg" ]; then
+            echo "> macOS：提供 \`*-macos-aarch64.dmg\`（Apple Silicon），未签名；若打开提示「已损坏」，在终端执行 \`xattr -cr /Applications/ismism-trace.app\` 或见 [打包说明 - macOS 已损坏](docs/build.md#macos-已损坏)。" >> release_body.md
+          elif [ -f "release/ismism-trace-${VER}-macos-aarch64.zip" ]; then
+            echo "> macOS：提供 \`*-macos-aarch64.zip\`（Apple Silicon），解压后为 \`.app\`，未签名；若打开提示「已损坏」见 [打包说明 - macOS 已损坏](docs/build.md#macos-已损坏)。" >> release_body.md
           fi
 
       - name: Prepare release files list
         id: files
         run: |
+          set +e
           VER="${{ steps.version.outputs.version }}"
           FILES=""
           [ -f "release/ismism-trace-${VER}-win-x64.exe" ] && FILES="${FILES}release/ismism-trace-${VER}-win-x64.exe"$'\n'
+          [ -f "release/ismism-trace-${VER}-macos-aarch64.dmg" ] && FILES="${FILES}release/ismism-trace-${VER}-macos-aarch64.dmg"$'\n'
           [ -f "release/ismism-trace-${VER}-macos-aarch64.zip" ] && FILES="${FILES}release/ismism-trace-${VER}-macos-aarch64.zip"$'\n'
           [ -f "release/ismism-trace-${VER}-android-universal.apk" ] && FILES="${FILES}release/ismism-trace-${VER}-android-universal.apk"$'\n'
           [ -f "release/ismism-trace-${VER}-android-universal-unsigned.apk" ] && FILES="${FILES}release/ismism-trace-${VER}-android-universal-unsigned.apk"$'\n'
